@@ -20,6 +20,9 @@
 #include "Panels/InspectorPanel/Components/DirectionalLightUI.hpp"
 #include "Panels/InspectorPanel/Components/PointLightUI.hpp"
 #include "Panels/InspectorPanel/Components/ModelUI.hpp"
+
+#include "Panels/ViewportPanel/EditorPanel.hpp"
+#include "Panels/ViewportPanel/GamePanel.hpp"
 #include "Panels/InspectorPanel/Components/ColliderUI.hpp"
 #include "Panels/ViewportPanel.hpp"
 
@@ -63,15 +66,17 @@ namespace Diligent {
 
         void RegisterViewportPanels(std::function<ITextureView* ()> gameSrvGetter, std::function<ITextureView* ()> editorSrvGetter);
         
-        void SetEditorViewportInfo(ImVec2 pos, ImVec2 size, bool hovered) {
+        void SetEditorViewportInfo(ImVec2 pos, ImVec2 size, bool hovered, bool focused) {
             m_EditorViewportPos = pos;
             m_EditorViewportSize = size;
             m_IsEditorViewportHovered = hovered;
+            m_IsEditorViewportFocused = focused;
         }
 
         ImVec2 GetEditorViewportPos() const { return m_EditorViewportPos; }
         ImVec2 GetEditorViewportSize() const { return m_EditorViewportSize; }
         bool IsEditorViewportHovered() const { return m_IsEditorViewportHovered; }
+        bool IsEditorViewportFocused() const { return m_IsEditorViewportFocused; }
 
     private:
         GUIManager() = default;
@@ -102,6 +107,8 @@ namespace Diligent {
         ImVec2 m_EditorViewportPos = { 0, 0 };
         ImVec2 m_EditorViewportSize = { 0, 0 };
         bool m_IsEditorViewportHovered = false;
+        bool m_IsEditorViewportFocused = false;
+        bool m_FrameStarted = false;
     };
 
 }
