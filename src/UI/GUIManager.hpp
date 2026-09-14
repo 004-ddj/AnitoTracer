@@ -24,7 +24,6 @@
 #include "Panels/ViewportPanel/EditorPanel.hpp"
 #include "Panels/ViewportPanel/GamePanel.hpp"
 #include "Panels/InspectorPanel/Components/ColliderUI.hpp"
-#include "Panels/ViewportPanel.hpp"
 
 namespace Diligent {
 
