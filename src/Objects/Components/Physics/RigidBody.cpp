@@ -37,8 +37,8 @@ void RigidBody::OnFixedUpdate(float deltaTime) {
 	Transform* transform = owner->GetTransform();
 	if (!transform) return;
 
-	transform->SetPosition(mBody->GetPosition());
-	transform->SetRotation(mBody->GetRotation());
+	transform->SetWorldPosition(mBody->GetPosition());
+	transform->SetWorldRotation(mBody->GetRotation());
 }
 
 void RigidBody::ApplyForce(const glm::vec3& force) {
