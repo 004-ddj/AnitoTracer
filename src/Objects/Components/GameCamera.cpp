@@ -12,9 +12,7 @@
 
 GameCamera::GameCamera(Transform* transform, gbe::IInstanceManager<HierarchyObject>::Ref owner)
     : CameraComponent(transform, owner)
-{
-    m_name = "GameCamera";
-}
+{}
 
 void GameCamera::OnGUI_EditorEvent(float deltaTime)
 {
