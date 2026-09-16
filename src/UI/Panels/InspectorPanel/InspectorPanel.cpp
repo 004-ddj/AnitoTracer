@@ -9,7 +9,13 @@
 
 void Diligent::InspectorPanel::Draw()
 {
-    if (!m_IsVisible) return;
+    if (!m_IsVisible) {
+        if (m_WasAnyItemActive) {
+            HierarchyManager::GetInstance().EndUndoableAction();
+            m_WasAnyItemActive = false;
+        }
+        return;
+    }
 
     if (ImGui::Begin(m_Name.c_str(), &m_IsVisible))
     {
@@ -166,6 +172,19 @@ void Diligent::InspectorPanel::Draw()
         {
             ImGui::Text("No object selected.");
         }
+
+        // Any interaction with a widget inside this window (drag, checkbox, button,
+        // add/remove component, etc.) is coalesced into a single undo entry that
+        // spans from activation to release, using HierarchyManager's serialized
+        // snapshot as the before/after state.
+        const bool isAnyItemActive = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && ImGui::IsAnyItemActive();
+        if (isAnyItemActive && !m_WasAnyItemActive) {
+            HierarchyManager::GetInstance().BeginUndoableAction();
+        }
+        if (!isAnyItemActive && m_WasAnyItemActive) {
+            HierarchyManager::GetInstance().EndUndoableAction();
+        }
+        m_WasAnyItemActive = isAnyItemActive;
     }
     ImGui::End();
 }

@@ -7,10 +7,22 @@ namespace Diligent {
 
     void GizmoDrawer::Draw(CameraComponent* pActiveCamera, HierarchyObject::Ref selectedObj, float x, float y, float width, float height)
     {
-        if (!selectedObj || !pActiveCamera) return;
+        if (!selectedObj || !pActiveCamera) {
+            if (m_WasUsingGizmo) {
+                HierarchyManager::GetInstance().EndUndoableAction();
+                m_WasUsingGizmo = false;
+            }
+            return;
+        }
 
         auto* transformComp = selectedObj.GetPtr()->GetComponent<Transform>();
-        if (!transformComp) return;
+        if (!transformComp) {
+            if (m_WasUsingGizmo) {
+                HierarchyManager::GetInstance().EndUndoableAction();
+                m_WasUsingGizmo = false;
+            }
+            return;
+        }
 
         // Handle hotkeys (only if UI isn't actively capturing text input)
         //TODO- Change hotkeys later
@@ -47,7 +59,12 @@ namespace Diligent {
         );
 
         // Apply transformations back to component
-        if (ImGuizmo::IsUsing())
+        const bool isUsingGizmo = ImGuizmo::IsUsing();
+        if (isUsingGizmo && !m_WasUsingGizmo) {
+            HierarchyManager::GetInstance().BeginUndoableAction();
+        }
+
+        if (isUsingGizmo)
         {
             glm::vec3 pos, rotDegrees, scale;
 
@@ -72,6 +89,11 @@ namespace Diligent {
                 transformComp->SetScale(scale);
             }
         }
+
+        if (!isUsingGizmo && m_WasUsingGizmo) {
+            HierarchyManager::GetInstance().EndUndoableAction();
+        }
+        m_WasUsingGizmo = isUsingGizmo;
     }
 
 }

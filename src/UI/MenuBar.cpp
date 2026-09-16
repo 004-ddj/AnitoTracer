@@ -46,6 +46,19 @@ namespace Diligent {
                 ImGui::EndMenu();
             }
 
+            if (ImGui::BeginMenu("Edit"))
+            {
+                if (ImGui::MenuItem("Undo", "Ctrl+Z", false, HierarchyManager::GetInstance().CanUndo()))
+                {
+                    HierarchyManager::GetInstance().Undo();
+                }
+                if (ImGui::MenuItem("Redo", "Ctrl+Y", false, HierarchyManager::GetInstance().CanRedo()))
+                {
+                    HierarchyManager::GetInstance().Redo();
+                }
+                ImGui::EndMenu();
+            }
+
             if (ImGui::BeginMenu("Assets"))
             {
                 if (ImGui::MenuItem("Add Empty Object"))
@@ -157,6 +170,18 @@ namespace Diligent {
             !ImGui::GetIO().WantTextInput)
         {
             ProjectLoader::CreateNewScene();
+        }
+
+        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z) &&
+            !ImGui::GetIO().WantTextInput)
+        {
+            HierarchyManager::GetInstance().Undo();
+        }
+
+        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y) &&
+            !ImGui::GetIO().WantTextInput)
+        {
+            HierarchyManager::GetInstance().Redo();
         }
 
         // TODO: Move scene-load confirmation into a reusable modal/service so non-menu callers
