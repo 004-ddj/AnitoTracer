@@ -7,8 +7,8 @@ void main_vs(in VertexInput In, out PSInput Out)
     Out.Pos = mul(viewPos, g_Proj);
     
     Out.WorldPos = worldPos.xyz;
-    Out.Normal = normalize(mul(In.Norm, (float3x3)g_Model));
-    Out.Tangent = normalize(mul(In.Tangent, (float3x3)g_Model));
-    Out.Bitangent = normalize(mul(In.Bitangent, (float3x3)g_Model));
+    Out.Normal = normalize(mul((float3x3) g_Model, In.Norm));
+    Out.Tangent = normalize(mul((float3x3) g_Model, In.Tangent));
+    Out.Bitangent = normalize(mul((float3x3) g_Model, In.Bitangent));
     Out.UV = In.uv;
 }
