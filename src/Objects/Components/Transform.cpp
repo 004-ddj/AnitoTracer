@@ -70,6 +70,16 @@ void Transform::SetWorldPosition(const glm::vec3& worldPosition) {
     m_position = worldPosition;
 }
 
+void Transform::SetWorldRotation(const glm::quat& worldRotation) {
+	if (const Transform* parentTransform = GetParentTransform(*this)) {
+		const glm::quat parentRot = parentTransform->GetRotation();
+		m_rotation = glm::inverse(parentRot) * worldRotation;
+		m_eulerAnglesDegrees = glm::degrees(glm::eulerAngles(m_rotation));
+		return;
+	}
+	
+	SetRotation(worldRotation);
+}
 
 // Converts the current quaternion rotation to Euler angles in degrees for UI display.
 glm::vec3 Transform::GetEulerAnglesDegrees() const {

@@ -39,6 +39,7 @@ public:
 
     void SetPosition(const glm::vec3& position) { m_position = position; }
     void SetWorldPosition(const glm::vec3& worldPosition);
+    void SetWorldRotation(const glm::quat& worldRotation);
 
     void SetRotation(const glm::quat& rotation) {
         m_rotation = rotation;
