@@ -17,6 +17,12 @@ namespace Diligent {
         //For menu bar
         virtual void DrawTopBar() {}
 
+        // Called right before ImGui::Begin so subclasses can request window focus/etc.
+        virtual void OnBeforeBegin() {}
+
+        // Called every frame the viewport image is drawn, regardless of gizmo support.
+        virtual void OnViewportDrawn(ImVec2 pos, ImVec2 size, bool hovered, bool focused) {}
+
         ImVec4 m_barColor = ImVec4(1.0f, 0.25f, 0.15f, 1.0f);
 
         ImGuiWindowFlags m_WindowFlags = 0;

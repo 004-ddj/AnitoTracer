@@ -7,6 +7,8 @@
 #include "RendererManager.hpp"
 
 #include "CreateInstance.hpp"
+#include "../AppState.hpp"
+#include "GUIManager.hpp"
 
 namespace Diligent {
 
@@ -23,6 +25,11 @@ namespace Diligent {
                 if (ImGui::MenuItem("Create New Scene", "Ctrl+N"))
                 {
                     ProjectLoader::CreateNewScene();
+                }
+                if (ImGui::MenuItem("Create Project"))
+                {
+                    const std::string projectPath = gbe::FileDialogue::GetFilePath(gbe::FileDialogue::FOLDER);
+                    ProjectLoader::RequestCreateProject(projectPath);
                 }
                 if (ImGui::MenuItem("Load Project", "Alt+F4"))
                 {
@@ -44,6 +51,33 @@ namespace Diligent {
                     ProjectLoader::RequestSceneLoad(outPath);
                 }
                 ImGui::EndMenu();
+            }
+
+            if (!AppState::isReleaseBuild)
+            {
+                ImGui::Separator();
+                if (!AppState::isPlaying)
+                {
+                    if (ImGui::MenuItem("Play"))
+                    {
+                        AppState::isPlaying = true;
+                        GUIManager::GetInstance().RequestGameViewportFocus();
+                    }
+                }
+                else
+                {
+                    if (ImGui::MenuItem("Stop"))
+                    {
+                        AppState::isPlaying = false;
+
+                        // Reload the scene from disk to discard any changes made during play.
+                        std::filesystem::path scenePath = HierarchyManager::GetInstance().GetSceneFile();
+                        if (!scenePath.empty())
+                            HierarchyManager::GetInstance().LoadScene(scenePath);
+                        else
+                            HierarchyManager::GetInstance().CreateNewScene();
+                    }
+                }
             }
 
             if (ImGui::BeginMenu("Edit"))
@@ -217,6 +251,29 @@ namespace Diligent {
             if (ImGui::Button("Cancel"))
             {
                 ProjectLoader::CancelPendingSceneLoad();
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ProjectLoader::HasPendingProjectCreation())
+        {
+            ImGui::OpenPopup("Non-Empty Project Folder");
+        }
+        if (ImGui::BeginPopupModal("Non-Empty Project Folder", nullptr,
+            ImGuiWindowFlags_AlwaysAutoResize))
+        {
+            ImGui::TextWrapped("The selected folder is not empty.");
+            ImGui::TextWrapped("Create the project files here anyway?");
+            if (ImGui::Button("Proceed"))
+            {
+                ProjectLoader::ResolvePendingProjectCreation(true);
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Cancel"))
+            {
+                ProjectLoader::ResolvePendingProjectCreation(false);
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndPopup();

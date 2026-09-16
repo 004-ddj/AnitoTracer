@@ -12,6 +12,8 @@ namespace Diligent {
     void ViewportPanel::Draw() {
         if (!m_IsVisible) return;
 
+        OnBeforeBegin();
+
         // Remove padding so the render target sits flush with the window borders
         ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
         //Prevent jitters
@@ -30,9 +32,11 @@ namespace Diligent {
                 // Diligent accepts ITextureView* cast to ImTextureID
                 ImGui::Image(reinterpret_cast<ImTextureID>(pSRV), viewportSize);
 
+                const bool imageHovered = ImGui::IsItemHovered();
+                const bool windowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
+                OnViewportDrawn(cursorPos, viewportSize, imageHovered, windowFocused);
+
                 if (m_DrawGizmos) {
-                    const bool imageHovered = ImGui::IsItemHovered();
-                    const bool windowFocused = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
                     GUIManager::GetInstance().SetEditorViewportInfo(cursorPos, viewportSize, imageHovered, windowFocused);
                 }
             }
