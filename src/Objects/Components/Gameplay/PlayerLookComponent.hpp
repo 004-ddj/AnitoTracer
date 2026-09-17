@@ -8,6 +8,7 @@
 
 
 #include "UI/CursorManager.hpp"
+#include "UI/GUIManager.hpp"
 #include "../AppConfig.hpp"
 
 class PlayerLookComponent : public ComponentBase, public gbe::ITrigger<UpdateTrigger> {
@@ -36,31 +37,50 @@ public:
             CursorManager::GetInstance().TemporarilyUnlock();
         }
 
-        gbe::InputSystem::Vec2 mouseDelta = gbe::InputSystem::GetMouseDelta();
+        // In a true release build the whole app IS the game. In editor play mode,
+        // look input/cursor lock is only active while the Game panel is focused.
+        bool gameActive = true;
+        if (!AppConfig::release) {
+            Diligent::GUIManager& gui = Diligent::GUIManager::GetInstance();
+            gameActive = gui.IsGameViewportFocused();
 
-        if (mouseDelta.x != 0.0f || mouseDelta.y != 0.0f) {
-            // Horizontal movement rotates around Y-axis (Yaw)
-            m_yaw += mouseDelta.x * m_sensitivity;
+            CursorManager::GetInstance().SetScopedRegion(true);
+            ImVec2 pos = gui.GetGameViewportPos();
+            ImVec2 size = gui.GetGameViewportSize();
+            CursorManager::GetInstance().SetScopedBounds(pos, ImVec2(pos.x + size.x, pos.y + size.y));
+        }
+        else {
+            CursorManager::GetInstance().SetScopedRegion(false);
+        }
 
-            // Vertical movement rotates around X-axis (Pitch)
-            m_pitch -= mouseDelta.y * m_sensitivity * (m_reverse_y ? -1.0f : 1.0f);
+        // Only push a lock state change when it actually changes; calling SetCursorLock(true)
+        // every frame would immediately override a pending Escape-triggered TemporarilyUnlock().
+        if (m_lockcursor && CursorManager::GetInstance().IsLocked() != gameActive) {
+            CursorManager::GetInstance().SetCursorLock(gameActive);
+        }
 
-            // Clamp pitch to prevent camera flipping at poles
-            m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
+        if (gameActive) {
+            gbe::InputSystem::Vec2 mouseDelta = gbe::InputSystem::GetMouseDelta();
 
-            // Apply orientation to Transform
-            transform->SetEulerAnglesDegrees(glm::vec3(m_pitch, m_yaw, 0.0f));
+            if (mouseDelta.x != 0.0f || mouseDelta.y != 0.0f) {
+                // Horizontal movement rotates around Y-axis (Yaw)
+                m_yaw += mouseDelta.x * m_sensitivity;
+
+                // Vertical movement rotates around X-axis (Pitch)
+                m_pitch -= mouseDelta.y * m_sensitivity * (m_reverse_y ? -1.0f : 1.0f);
+
+                // Clamp pitch to prevent camera flipping at poles
+                m_pitch = std::clamp(m_pitch, -89.0f, 89.0f);
+
+                // Apply orientation to Transform
+                transform->SetEulerAnglesDegrees(glm::vec3(m_pitch, m_yaw, 0.0f));
+            }
         }
 
         if (m_lockcursor && CursorManager::GetInstance().IsLocked() &&
             !CursorManager::GetInstance().IsTemporarilyUnlocked()) {
             CursorManager::GetInstance().MaintainLock();
         }
-    }
-
-    void OnStart() override {
-        if (AppConfig::release)
-            CursorManager::GetInstance().SetCursorLock(m_lockcursor);
     }
 
     // Target Transform Accessors

@@ -5,6 +5,7 @@
 
 #include <string>
 #include <iostream>
+#include <typeinfo>
 
 #include "Organization/IInstanceManager.hpp"
 #include "AssetPipeline.hpp"
@@ -16,8 +17,8 @@ class HierarchyObject;
 class ComponentBase : public gbe::ISerializable {
 public:
     // Initializes the component with a name and an optional owner.
-    ComponentBase(const std::string& name, gbe::IInstanceManager<HierarchyObject>::Ref owner = {})
-        : m_name(name), m_owner(owner) {}
+    ComponentBase(const std::string&, gbe::IInstanceManager<HierarchyObject>::Ref owner = {})
+        : m_owner(owner) {}
 
     // A virtual destructor is critical for base classes to ensure 
     // derived class destructors are called correctly.
@@ -36,8 +37,19 @@ public:
     ComponentBase(ComponentBase&&) = default;
     ComponentBase& operator=(ComponentBase&&) = default;
 
-    // Core getters for the component data.
-    const std::string& GetName() const { return m_name; }
+    // The component name is always the concrete C++ type name.
+    std::string GetName() const {
+        std::string typeName = typeid(*this).name();
+        constexpr const char* prefixes[] = {"class ", "struct ", "enum "};
+        for (const char* prefix : prefixes) {
+            const std::string prefixString(prefix);
+            if (typeName.rfind(prefixString, 0) == 0) {
+                typeName.erase(0, prefixString.size());
+                break;
+            }
+        }
+        return typeName;
+    }
     gbe::IInstanceManager<HierarchyObject>::Ref GetOwner() const { return m_owner; }
 
     // Sets or updates the owning HierarchyObject.
@@ -49,9 +61,6 @@ public:
     }
 
 protected:
-    std::string m_name;
-    GBE_SERIALIZE_FIELD(m_name);
-
     gbe::IInstanceManager<HierarchyObject>::Ref m_owner;
 
     virtual inline void GBE_Init() {};

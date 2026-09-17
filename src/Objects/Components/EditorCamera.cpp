@@ -8,9 +8,7 @@
 
 EditorCamera::EditorCamera(Transform* transform, gbe::IInstanceManager<HierarchyObject>::Ref owner)
     : CameraComponent(transform, owner)
-{
-    m_name = "EditorCamera";
-}
+{}
 
 void EditorCamera::OnGUI_EditorEvent(float deltaTime)
 {

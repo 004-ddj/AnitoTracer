@@ -77,6 +77,26 @@ namespace Diligent {
         bool IsEditorViewportHovered() const { return m_IsEditorViewportHovered; }
         bool IsEditorViewportFocused() const { return m_IsEditorViewportFocused; }
 
+        void SetGameViewportInfo(ImVec2 pos, ImVec2 size, bool hovered, bool focused) {
+            m_GameViewportPos = pos;
+            m_GameViewportSize = size;
+            m_IsGameViewportHovered = hovered;
+            m_IsGameViewportFocused = focused;
+        }
+
+        ImVec2 GetGameViewportPos() const { return m_GameViewportPos; }
+        ImVec2 GetGameViewportSize() const { return m_GameViewportSize; }
+        bool IsGameViewportHovered() const { return m_IsGameViewportHovered; }
+        bool IsGameViewportFocused() const { return m_IsGameViewportFocused; }
+
+        // Brings the Game panel to the front and gives it input focus (e.g. when Play starts).
+        void RequestGameViewportFocus() { m_GameViewportFocusRequested = true; }
+        bool ConsumeGameViewportFocusRequest() {
+            bool requested = m_GameViewportFocusRequested;
+            m_GameViewportFocusRequested = false;
+            return requested;
+        }
+
     private:
         GUIManager() = default;
         ~GUIManager();
@@ -107,6 +127,11 @@ namespace Diligent {
         ImVec2 m_EditorViewportSize = { 0, 0 };
         bool m_IsEditorViewportHovered = false;
         bool m_IsEditorViewportFocused = false;
+        ImVec2 m_GameViewportPos = { 0, 0 };
+        ImVec2 m_GameViewportSize = { 0, 0 };
+        bool m_IsGameViewportHovered = false;
+        bool m_IsGameViewportFocused = false;
+        bool m_GameViewportFocusRequested = false;
         bool m_FrameStarted = false;
     };
 

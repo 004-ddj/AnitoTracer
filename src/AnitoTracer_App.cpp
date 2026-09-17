@@ -22,6 +22,7 @@
 #include "Asset/ProjectLoader.hpp"
 
 #include "AppConfig.hpp"
+#include "AppState.hpp"
 #include "Input/ImguiBridge.hpp"
 
 #include "UI/CursorManager.hpp"
@@ -108,6 +109,10 @@ AnitoTracer_App::~AnitoTracer_App()
 
 bool AnitoTracer_App::Initialize(HINSTANCE hInstance, int nCmdShow)
 {
+    // AppConfig is only consulted here; all runtime checks use AppState from now on.
+    AppState::isReleaseBuild = AppConfig::release;
+    AppState::isPlaying = AppConfig::release;
+
     SubscribeToStandardEvents();
 
     if (!InitWindow(hInstance, nCmdShow)) return false;
@@ -332,7 +337,7 @@ void AnitoTracer_App::Update()
         return;
     }
 
-    if (!AppConfig::release)
+    if (!AppState::isReleaseBuild)
     {
         m_pGameTarget->Create(m_pDevice, SCDesc.Width, SCDesc.Height, SCDesc.ColorBufferFormat, SCDesc.DepthBufferFormat);
         m_pEditorTarget->Create(m_pDevice, SCDesc.Width, SCDesc.Height, SCDesc.ColorBufferFormat, SCDesc.DepthBufferFormat);
@@ -354,7 +359,7 @@ void AnitoTracer_App::Update()
     imguiManager.NewFrame(SCDesc.Width, SCDesc.Height, transform);
     //UpdateCameraControls();
 
-    if (!AppConfig::release) {
+    if (!AppState::isReleaseBuild) {
         imguiManager.DrawUI(m_AppRunning);
 
         // Debug: Display the rendered Game Target fullscreen
@@ -386,11 +391,11 @@ void AnitoTracer_App::Update()
     ForwardImGuiInputToSystem();
     gbe::InputSystem::Update();
 
-    if (!AppConfig::release){
+    if (!AppState::isPlaying){
         //Editor update
         HierarchyManager::GetInstance().DispatchEvent<EditorUpdateTrigger>(deltaTime); //test delta frame
     }
-    if (AppConfig::release){
+    if (AppState::isPlaying){
         HierarchyManager::GetInstance().DispatchEvent<UpdateTrigger>(0.016f); //test delta frame
         HierarchyManager::GetInstance().DispatchEvent<OnGUI_Release>(deltaTime);
         PhysicsEngine::GetInstance().Get().Step(deltaTime);
@@ -411,7 +416,7 @@ void AnitoTracer_App::Render()
 
     const auto& SCDesc = m_pSwapChain->GetDesc();
 
-    if (AppConfig::release)
+    if (AppState::isReleaseBuild)
     {
         RendererManager::GetInstance().RenderFrame(renderData);
         //For testing

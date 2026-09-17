@@ -11,6 +11,38 @@ namespace {
         const auto absolute = std::filesystem::absolute(path, error);
         return error ? path.lexically_normal() : absolute.lexically_normal();
     }
+
+    // RAII helper so every mutating HierarchyManager entry point records a single
+    // undo entry regardless of its return paths, and composes cleanly when one
+    // mutator calls another (e.g. ObjectFactory building up a multi-component object).
+    struct UndoScope {
+        UndoScope() { HierarchyManager::GetInstance().BeginUndoableAction(); }
+        ~UndoScope() { HierarchyManager::GetInstance().EndUndoableAction(); }
+    };
+}
+
+void HierarchyManager::BeginUndoableAction() {
+    gbe::UndoRedoManager::GetInstance().BeginAction(GetGUID());
+}
+
+void HierarchyManager::EndUndoableAction() {
+    gbe::UndoRedoManager::GetInstance().EndAction();
+}
+
+void HierarchyManager::Undo() {
+    gbe::UndoRedoManager::GetInstance().Undo();
+}
+
+void HierarchyManager::Redo() {
+    gbe::UndoRedoManager::GetInstance().Redo();
+}
+
+bool HierarchyManager::CanUndo() const {
+    return gbe::UndoRedoManager::GetInstance().CanUndo();
+}
+
+bool HierarchyManager::CanRedo() const {
+    return gbe::UndoRedoManager::GetInstance().CanRedo();
 }
 
 CameraComponent* HierarchyManager::GetMainCamera() const {
@@ -54,6 +86,8 @@ void HierarchyManager::QueueObjectDeletion(HierarchyObject::Ref object) {
 }
 
 bool HierarchyManager::ReparentObject(HierarchyObject::Ref object, HierarchyObject::Ref parent) {
+    UndoScope undoScope;
+
     HierarchyObject* objectPtr = object.GetPtr();
     HierarchyObject* parentPtr = parent.GetPtr();
     if (!objectPtr || objectPtr == parentPtr) return false;
@@ -117,6 +151,8 @@ bool HierarchyManager::CopyObject(HierarchyObject::Ref object) {
 HierarchyObject::Ref HierarchyManager::PasteObject(HierarchyObject::Ref parent) {
     if (!m_hasCopiedObject) return nullptr;
 
+    UndoScope undoScope;
+
     gbe::SerializedData pasteData = m_copiedObject;
     gbe::ISerializable* rawObject = gbe::TypeRegistry::Instantiate(
         typeid(HierarchyObject).name(), pasteData);
@@ -147,6 +183,10 @@ HierarchyObject::Ref HierarchyManager::PasteObject(HierarchyObject::Ref parent) 
 }
 
 size_t HierarchyManager::CommitDeferredDeletions() {
+    if (m_deferredDeletionIds.empty()) return 0;
+
+    UndoScope undoScope;
+
     std::vector<gbe::IInstanceManager<HierarchyObject>::IdType> pendingDeletions;
     pendingDeletions.swap(m_deferredDeletionIds);
 
@@ -172,6 +212,8 @@ size_t HierarchyManager::CommitDeferredDeletions() {
 
 HierarchyObject::Ref HierarchyManager::CreateNewEmpty(std::string name)
 {
+    UndoScope undoScope;
+
     if(name.size() == 0 || name.empty())
         name = "New Object";
 
@@ -181,6 +223,8 @@ HierarchyObject::Ref HierarchyManager::CreateNewEmpty(std::string name)
 
 void HierarchyManager::AddComponentToObject(HierarchyObject::Ref object, std::unique_ptr<ComponentBase> component) {
     if (!object || !component) return;
+
+    UndoScope undoScope;
     //Moved it to object
     object.GetPtr()->AddComponent(std::move(component));
 }
@@ -188,6 +232,7 @@ void HierarchyManager::AddComponentToObject(HierarchyObject::Ref object, std::un
 std::unique_ptr<ComponentBase> HierarchyManager::RemoveComponentFromObject(HierarchyObject::Ref object, ComponentBase* componentToRemove) {
     if (!object || !componentToRemove) return nullptr;
 
+    UndoScope undoScope;
     //Moved it to object
     return object.GetPtr()->RemoveComponent(componentToRemove);
 }
@@ -411,6 +456,7 @@ void HierarchyManager::LoadScene(std::filesystem::path filepath)
 
     m_sceneFile = NormalizePath(filepath);
     this->DeserializeFromFile(m_sceneFile);
+    gbe::UndoRedoManager::GetInstance().Clear();
 
     //Call on load AFTER scene load commit
     gbe::EventSystem::DispatchTo(
@@ -431,6 +477,7 @@ void HierarchyManager::CreateNewScene()
     m_sceneFile.clear();
     m_sceneLabel = "Untitled";
     EnsureEditorCameraExists();
+    gbe::UndoRedoManager::GetInstance().Clear();
 
     // Call on load AFTER the new blank scene is ready.
     gbe::EventSystem::DispatchTo(

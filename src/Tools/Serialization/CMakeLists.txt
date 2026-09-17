@@ -1,6 +1,7 @@
 set(GBE_SERIALIZATION_SRC
 	ISerializable.cpp
 	AutoSerializer.cpp
+	UndoRedoManager.cpp
 )
 
 set(CUR_TARGET_NAME gbe_serialization)

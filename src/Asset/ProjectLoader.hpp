@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include "File/Parser.hpp"
+#include <fstream>
 #include <string>
 
 #include "AssetPipeline.hpp"
@@ -20,6 +21,7 @@ class ProjectLoader {
 	// TODO: Replace static loader state with an instance/service that owns the active project session.
 	inline static std::filesystem::path pendingSceneFile;
 	inline static bool pendingNewScene = false;
+	inline static std::filesystem::path pendingProjectDirectory;
 	inline static gbe::SerializedData savedSceneData;
 	inline static bool hasSavedSceneData = false;
 
@@ -28,6 +30,58 @@ public:
 	inline static std::filesystem::path GetCurrentSceneFile() { return currentSceneFile; }
 	inline static std::filesystem::path GetCurrentProjectFile() { return currentProjectFile; }
 	inline static bool CanQuickSave() { return !currentSceneFile.empty(); }
+
+	inline static bool CreateProject(const std::filesystem::path& projectDirectory) {
+		if (projectDirectory.empty() || !std::filesystem::is_directory(projectDirectory)) {
+			return false;
+		}
+
+		const std::string projectName = projectDirectory.filename().string().empty()
+			? "Project"
+			: projectDirectory.filename().string();
+		const auto projectFile = projectDirectory / (projectName + ".aproject");
+		const auto sceneFile = projectDirectory / "Main.ascene";
+		std::ofstream projectStream(projectFile);
+		if (!projectStream) {
+			return false;
+		}
+		projectStream << "{\n  \"entryscene\": \"Main.ascene\"\n}\n";
+		projectStream.close();
+
+		CreateNewSceneNow();
+		HierarchyManager::GetInstance().SerializeToFile(sceneFile);
+		currentProjectDir = projectDirectory;
+		currentSceneFile = sceneFile;
+		currentProjectFile = projectFile;
+		AssetPipeline::IncludeFolder(currentProjectDir);
+		savedSceneData = HierarchyManager::GetInstance().Serialize();
+		hasSavedSceneData = true;
+		return true;
+	}
+
+	inline static void RequestCreateProject(const std::filesystem::path& projectDirectory) {
+		if (projectDirectory.empty() || !std::filesystem::is_directory(projectDirectory)) {
+			return;
+		}
+
+		if (!std::filesystem::is_empty(projectDirectory)) {
+			pendingProjectDirectory = projectDirectory;
+			return;
+		}
+
+		CreateProject(projectDirectory);
+	}
+
+	inline static bool HasPendingProjectCreation() { return !pendingProjectDirectory.empty(); }
+	inline static std::filesystem::path GetPendingProjectDirectory() { return pendingProjectDirectory; }
+
+	inline static void ResolvePendingProjectCreation(bool proceed) {
+		const auto projectDirectory = pendingProjectDirectory;
+		pendingProjectDirectory.clear();
+		if (proceed) {
+			CreateProject(projectDirectory);
+		}
+	}
 
 	inline static std::filesystem::path GetAbsolutePath(const std::filesystem::path& relativePath) {
 		return std::filesystem::absolute(currentProjectDir / relativePath);
@@ -114,7 +168,10 @@ public:
 	static inline void LoadProject(std::filesystem::path path) {
 		ProjectInfo newinfo;
 
+		if(path.empty()) return;
+
 		gbe::Parser::PopulateClass(newinfo, path);
+
 
 		currentProjectDir = path.parent_path();
 		currentSceneFile = std::filesystem::absolute(currentProjectDir / newinfo.entryscene).lexically_normal();

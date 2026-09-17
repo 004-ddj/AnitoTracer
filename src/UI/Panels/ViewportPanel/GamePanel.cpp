@@ -1,4 +1,5 @@
 #include "GamePanel.hpp"
+#include "GUIManager.hpp"
 #include <iostream>
 
 namespace Diligent {
@@ -8,6 +9,16 @@ namespace Diligent {
         // Require a menu bar for this panel
         m_WindowFlags |= ImGuiWindowFlags_MenuBar;
         m_barColor = ImVec4(0.15f, 0.25f, 0.15f, 1.0f);
+    }
+
+    void GamePanel::OnBeforeBegin() {
+        if (GUIManager::GetInstance().ConsumeGameViewportFocusRequest()) {
+            ImGui::SetWindowFocus(m_Name.c_str());
+        }
+    }
+
+    void GamePanel::OnViewportDrawn(ImVec2 pos, ImVec2 size, bool hovered, bool focused) {
+        GUIManager::GetInstance().SetGameViewportInfo(pos, size, hovered, focused);
     }
 
     void GamePanel::DrawTopBar() {
