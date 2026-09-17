@@ -128,6 +128,18 @@ public:
 		return m_isTemporarilyUnlocked;
 	}
 
+	// When enabled, the lock/clip rect is confined to a caller-supplied region
+	// (e.g. the in-editor Game panel bounds) instead of the whole client area.
+	void SetScopedRegion(bool enabled) {
+		m_scopedMode = enabled;
+	}
+
+	// Screen-space-relative (client area) bounds used when scoped mode is enabled.
+	void SetScopedBounds(ImVec2 min, ImVec2 max) {
+		m_scopedMin = min;
+		m_scopedMax = max;
+	}
+
 	ImVec2 ProcessMouseDelta(const ImVec2& mouseDelta) {
 		if (!m_cursorWarped) return mouseDelta;
 		m_cursorWarped = false;
@@ -141,8 +153,7 @@ public:
 
 			POINT cursorPosition;
 			if (::GetCursorPos(&cursorPosition)) {
-				RECT clientRect;
-				::GetClientRect(m_hWnd, &clientRect);
+				RECT clientRect = GetActiveClientRect();
 
 				POINT topLeft{ clientRect.left, clientRect.top };
 				POINT bottomRight{ clientRect.right, clientRect.bottom };
@@ -165,8 +176,7 @@ public:
 	void UpdateClipRect(bool recenter = true) {
 #if defined(_WIN32) || defined(PLATFORM_WIN32)
 		if (m_isLocked && m_hWnd) {
-			RECT rect;
-			::GetClientRect(m_hWnd, &rect);
+			RECT rect = GetActiveClientRect();
 
 			POINT topLeft{ rect.left, rect.top };
 			POINT bottomRight{ rect.right, rect.bottom };
@@ -194,9 +204,25 @@ private:
 	CursorManager(const CursorManager&) = delete;
 	CursorManager& operator=(const CursorManager&) = delete;
 
+#if defined(_WIN32) || defined(PLATFORM_WIN32)
+	// Client-area rect to clip/center within: the scoped region when enabled, otherwise the whole window.
+	RECT GetActiveClientRect() const {
+		if (m_scopedMode) {
+			return RECT{ (LONG)m_scopedMin.x, (LONG)m_scopedMin.y, (LONG)m_scopedMax.x, (LONG)m_scopedMax.y };
+		}
+		RECT rect;
+		::GetClientRect(m_hWnd, &rect);
+		return rect;
+	}
+#endif
+
 	HWND m_hWnd = nullptr;
 	bool m_isLocked = false;
 	bool m_isFocused = true;
 	bool m_isTemporarilyUnlocked = false;
 	bool m_cursorWarped = false;
+
+	bool m_scopedMode = false;
+	ImVec2 m_scopedMin{ 0.0f, 0.0f };
+	ImVec2 m_scopedMax{ 0.0f, 0.0f };
 };

@@ -1,12 +1,15 @@
 #include "PrefabFeature.hpp"
 
 #include "../HierarchyManager.hpp"
+#include "../Components/Camera.hpp"
 #include "File/Parser.hpp"
 #include "SerializedData.hpp"
+#include "SceneRegistry.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <string_view>
+#include <unordered_map>
 
 namespace
 {
@@ -72,6 +75,171 @@ namespace
         }
     }
 
+    void RemapGuids(gbe::SerializedData &data)
+    {
+        std::unordered_map<gbe::GUID, gbe::GUID> guidMap;
+
+        // 1. Identify all GUID definitions inside the prefab data
+        for (const auto &[key, value] : data.serialized_variables)
+        {
+            if (IsGuidSerializationKey(key))
+            {
+                gbe::GUID oldGuid = gbe::GUID::FromString(value);
+                if (oldGuid && guidMap.find(oldGuid) == guidMap.end())
+                {
+                    gbe::GUID newGuid;
+                    do
+                    {
+                        newGuid = gbe::GUID::Generate();
+                    } while (gbe::SceneRegistry::GetInstance().Resolve<gbe::ISerializable>(newGuid) != nullptr);
+
+                    guidMap[oldGuid] = newGuid;
+                }
+            }
+        }
+
+        if (guidMap.empty())
+        {
+            return;
+        }
+
+        // 2. Remap definitions and ObjectRef references to new GUIDs
+        for (auto &[key, value] : data.serialized_variables)
+        {
+            if (IsGuidSerializationKey(key))
+            {
+                gbe::GUID oldGuid = gbe::GUID::FromString(value);
+                auto it = guidMap.find(oldGuid);
+                if (it != guidMap.end())
+                {
+                    value = it->second.ToString();
+                }
+            }
+            else
+            {
+                gbe::GUID currentGuid = gbe::GUID::Empty();
+                gbe::Parser::PopulateClassStr(currentGuid, value);
+                if (currentGuid)
+                {
+                    auto it = guidMap.find(currentGuid);
+                    if (it != guidMap.end())
+                    {
+                        value = gbe::Parser::ExportClassStr(it->second);
+                    }
+                }
+            }
+        }
+    }
+
+    void BuildInstanceGuidMap(
+        const HierarchyObject *liveObject,
+        const gbe::SerializedData &prefabData,
+        const std::string &prefix,
+        std::unordered_map<gbe::GUID, gbe::GUID> &guidMap)
+    {
+        if (!liveObject)
+            return;
+
+        // Map live root/child object GUID
+        std::string objectGuidKey = prefix + "m_guid";
+        auto itObj = prefabData.serialized_variables.find(objectGuidKey);
+        if (itObj != prefabData.serialized_variables.end())
+        {
+            gbe::GUID assetGuid = gbe::GUID::FromString(itObj->second);
+            if (assetGuid)
+            {
+                guidMap[assetGuid] = liveObject->GetGUID();
+            }
+        }
+
+        // Map attached component GUIDs
+        const auto &components = liveObject->GetComponents();
+        for (size_t i = 0; i < components.size(); ++i)
+        {
+            if (!components[i])
+                continue;
+            std::string compGuidKey = prefix + "m_components[" + std::to_string(i) + "].m_guid";
+            auto itComp = prefabData.serialized_variables.find(compGuidKey);
+            if (itComp != prefabData.serialized_variables.end())
+            {
+                gbe::GUID assetGuid = gbe::GUID::FromString(itComp->second);
+                if (assetGuid)
+                {
+                    guidMap[assetGuid] = components[i]->GetGUID();
+                }
+            }
+        }
+
+        // Recursively map child hierarchy node GUIDs
+        const auto &children = liveObject->GetChildren();
+        for (size_t j = 0; j < children.size(); ++j)
+        {
+            if (!children[j])
+                continue;
+            std::string childPrefix = prefix + "m_children[" + std::to_string(j) + "].";
+            BuildInstanceGuidMap(children[j].get(), prefabData, childPrefix, guidMap);
+        }
+    }
+
+    void RemapGuidsForInstance(
+        HierarchyObject *liveObject,
+        gbe::SerializedData &prefabData)
+    {
+        std::unordered_map<gbe::GUID, gbe::GUID> guidMap;
+
+        // 1. Build mapping table from prefab asset GUIDs to the live instance's local GUIDs
+        BuildInstanceGuidMap(liveObject, prefabData, "", guidMap);
+
+        // 2. Fall back to generating new GUIDs for any asset elements missing in the live instance
+        for (const auto &[key, value] : prefabData.serialized_variables)
+        {
+            if (IsGuidSerializationKey(key))
+            {
+                gbe::GUID assetGuid = gbe::GUID::FromString(value);
+                if (assetGuid && guidMap.find(assetGuid) == guidMap.end())
+                {
+                    gbe::GUID newGuid;
+                    do
+                    {
+                        newGuid = gbe::GUID::Generate();
+                    } while (gbe::SceneRegistry::GetInstance().Resolve<gbe::ISerializable>(newGuid) != nullptr);
+
+                    guidMap[assetGuid] = newGuid;
+                }
+            }
+        }
+
+        if (guidMap.empty())
+            return;
+
+        // 3. Remap definition keys and internal ObjectRef references
+        for (auto &[key, value] : prefabData.serialized_variables)
+        {
+            if (IsGuidSerializationKey(key))
+            {
+                gbe::GUID assetGuid = gbe::GUID::FromString(value);
+                auto it = guidMap.find(assetGuid);
+                if (it != guidMap.end())
+                {
+                    value = it->second.ToString();
+                }
+            }
+            else
+            {
+                gbe::GUID refGuid = gbe::GUID::Empty();
+                gbe::Parser::PopulateClassStr(refGuid, value);
+                if (refGuid)
+                {
+                    auto it = guidMap.find(refGuid);
+                    if (it != guidMap.end())
+                    {
+                        value = gbe::Parser::ExportClassStr(it->second);
+                    }
+                }
+            }
+        }
+    }
+
     std::string SanitizePrefabFileName(std::string name)
     {
         if (name.empty())
@@ -112,7 +280,7 @@ namespace
     }
 
     std::filesystem::path ResolvePrefabPath(
-        const const std::string &storedPath)
+        const std::string &storedPath)
     {
         if (storedPath.empty())
         {
@@ -133,7 +301,7 @@ namespace
     }
 
     std::string MakeStorablePrefabPath(
-        const const std::filesystem::path &prefabPath)
+        const std::filesystem::path &prefabPath)
     {
         const std::filesystem::path normalizedPath = NormalizePath(prefabPath);
         const std::filesystem::path sceneFile = HierarchyManager::GetInstance().GetSceneFile();
@@ -154,12 +322,12 @@ namespace
     }
 
     bool LoadPrefabData(
-        const const std::filesystem::path &prefabPath,
+        const std::filesystem::path &prefabPath,
         gbe::SerializedData &outData)
     {
         const std::filesystem::path resolvedPath = prefabPath.is_absolute()
                                                        ? NormalizePath(prefabPath)
-                                                       : ResolvePrefabPath( prefabPath.generic_string());
+                                                       : ResolvePrefabPath(prefabPath.generic_string());
 
         if (!PrefabFeature::IsPrefabFile(resolvedPath))
         {
@@ -179,13 +347,12 @@ namespace
             return false;
         }
 
-        StripGuidKeys(outData);
         StripPrefabMetadataKeys(outData);
         return true;
     }
 
     std::filesystem::path BuildDefaultPrefabPath(
-        const const std::string &objectName)
+        const std::string &objectName)
     {
         const std::filesystem::path sceneFile = HierarchyManager::GetInstance().GetSceneFile();
         const std::filesystem::path sceneDirectory = sceneFile.empty()
@@ -214,8 +381,9 @@ namespace
         if (objectPtr->IsPrefabInstance())
         {
             gbe::SerializedData prefabData;
-            if (LoadPrefabData( objectPtr->GetPrefabAssetPath(), prefabData))
+            if (LoadPrefabData(objectPtr->GetPrefabAssetPath(), prefabData))
             {
+                StripGuidKeys(prefabData);
                 gbe::SerializedData instanceData = objectPtr->Serialize();
                 StripGuidKeys(instanceData);
                 StripPrefabMetadataKeys(instanceData);
@@ -229,7 +397,7 @@ namespace
         {
             if (child)
             {
-                SyncPrefabOverridesRecursive( child->getRef());
+                SyncPrefabOverridesRecursive(child->getRef());
             }
         }
     }
@@ -242,7 +410,7 @@ namespace
 
         if (objectPtr->IsPrefabInstance())
         {
-            PrefabFeature::RefreshPrefabInstance( object);
+            PrefabFeature::RefreshPrefabInstance(object);
             objectPtr = object.GetPtr();
             if (!objectPtr)
             {
@@ -262,7 +430,7 @@ namespace
 
         for (const auto &childRef : children)
         {
-            RefreshPrefabInstancesRecursive( childRef);
+            RefreshPrefabInstancesRecursive(childRef);
         }
     }
 }
@@ -273,7 +441,6 @@ bool PrefabFeature::IsPrefabFile(const std::filesystem::path &filepath)
 }
 
 std::filesystem::path PrefabFeature::CreatePrefabAsset(
-
     HierarchyObject::Ref object,
     std::filesystem::path targetPath)
 {
@@ -284,7 +451,7 @@ std::filesystem::path PrefabFeature::CreatePrefabAsset(
     std::filesystem::path prefabPath = targetPath;
     if (prefabPath.empty())
     {
-        prefabPath = BuildDefaultPrefabPath( objectPtr->GetName());
+        prefabPath = BuildDefaultPrefabPath(objectPtr->GetName());
     }
     else
     {
@@ -305,20 +472,18 @@ std::filesystem::path PrefabFeature::CreatePrefabAsset(
     }
 
     gbe::SerializedData prefabData = objectPtr->Serialize();
-    StripGuidKeys(prefabData);
     StripPrefabMetadataKeys(prefabData);
 
     prefabData.label = prefabPath.string();
     gbe::Parser::ExportClass(prefabData, prefabPath);
 
-    objectPtr->MutablePrefabAssetPath() = MakeStorablePrefabPath( prefabPath);
+    objectPtr->MutablePrefabAssetPath() = MakeStorablePrefabPath(prefabPath);
     objectPtr->MutablePrefabOverrides().clear();
 
     return prefabPath;
 }
 
 HierarchyObject::Ref PrefabFeature::InstantiatePrefab(
-
     std::filesystem::path prefabPath,
     HierarchyObject::Ref parent)
 {
@@ -327,17 +492,19 @@ HierarchyObject::Ref PrefabFeature::InstantiatePrefab(
 
     const auto resolvedPath = prefabPath.is_absolute()
                                   ? NormalizePath(prefabPath)
-                                  : ResolvePrefabPath( prefabPath.generic_string());
+                                  : ResolvePrefabPath(prefabPath.generic_string());
 
     gbe::SerializedData prefabData;
-    if (!LoadPrefabData( resolvedPath, prefabData))
+    if (!LoadPrefabData(resolvedPath, prefabData))
     {
         return nullptr;
     }
 
+    RemapGuids(prefabData);
+
     auto newObject = std::make_unique<HierarchyObject>("Prefab Instance");
     newObject->Deserialize(prefabData);
-    newObject->MutablePrefabAssetPath() = MakeStorablePrefabPath( resolvedPath);
+    newObject->MutablePrefabAssetPath() = MakeStorablePrefabPath(resolvedPath);
     newObject->MutablePrefabOverrides().clear();
 
     HierarchyObject::Ref newRef = HierarchyManager::GetInstance().AddRootObject(std::move(newObject));
@@ -352,6 +519,45 @@ HierarchyObject::Ref PrefabFeature::InstantiatePrefab(
         return nullptr;
     }
 
+    // TODO: Expose standard spawn offset as a configurable engine setting
+    constexpr float kStandardSpawnOffset = 5.0f;
+
+    CameraComponent *activeCamera = HierarchyManager::GetInstance().GetMainCamera();
+    if (!activeCamera)
+    {
+        activeCamera = HierarchyManager::GetInstance().GetEditorCamera();
+    }
+
+    if (activeCamera)
+    {
+        if (HierarchyObject::Ref camOwner = activeCamera->GetOwner())
+        {
+            if (Transform *camTransform = camOwner.GetPtr()->GetTransform())
+            {
+                const glm::vec3 camPos = camTransform->GetPosition();
+                const glm::quat camRot = camTransform->GetRotation();
+                const glm::vec3 camForward = camRot * glm::vec3(0.0f, 0.0f, 1.0f);
+
+                const glm::vec3 spawnPosition = camPos + camForward * kStandardSpawnOffset;
+
+                if (HierarchyObject *instantiatedObj = newRef.GetPtr())
+                {
+                    if (Transform *objTransform = instantiatedObj->GetTransform())
+                    {
+                        if (parent)
+                        {
+                            objTransform->SetWorldPosition(spawnPosition);
+                        }
+                        else
+                        {
+                            objTransform->SetPosition(spawnPosition);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     return newRef;
 }
 
@@ -361,12 +567,11 @@ bool PrefabFeature::ApplyPrefabToAsset(HierarchyObject::Ref object)
     if (!objectPtr || !objectPtr->IsPrefabInstance())
         return false;
 
-    const std::filesystem::path prefabPath = ResolvePrefabPath( objectPtr->GetPrefabAssetPath());
+    const std::filesystem::path prefabPath = ResolvePrefabPath(objectPtr->GetPrefabAssetPath());
     if (!IsPrefabFile(prefabPath))
         return false;
 
     gbe::SerializedData prefabData = objectPtr->Serialize();
-    StripGuidKeys(prefabData);
     StripPrefabMetadataKeys(prefabData);
 
     prefabData.label = prefabPath.string();
@@ -383,10 +588,12 @@ bool PrefabFeature::RevertPrefabInstance(HierarchyObject::Ref object)
         return false;
 
     gbe::SerializedData prefabData;
-    if (!LoadPrefabData( objectPtr->GetPrefabAssetPath(), prefabData))
+    if (!LoadPrefabData(objectPtr->GetPrefabAssetPath(), prefabData))
     {
         return false;
     }
+
+    RemapGuidsForInstance(objectPtr, prefabData);
 
     const std::string prefabAssetPath = objectPtr->GetPrefabAssetPath();
     objectPtr->Deserialize(prefabData);
@@ -403,10 +610,12 @@ bool PrefabFeature::RefreshPrefabInstance(HierarchyObject::Ref object)
         return false;
 
     gbe::SerializedData prefabData;
-    if (!LoadPrefabData( objectPtr->GetPrefabAssetPath(), prefabData))
+    if (!LoadPrefabData(objectPtr->GetPrefabAssetPath(), prefabData))
     {
         return false;
     }
+
+    RemapGuidsForInstance(objectPtr, prefabData);
 
     gbe::SerializedData mergedData = prefabData;
     for (const auto &[key, value] : objectPtr->GetPrefabOverrides())
@@ -438,7 +647,7 @@ void PrefabFeature::SyncPrefabOverridesBeforeSave()
     {
         if (rootNode)
         {
-            SyncPrefabOverridesRecursive( rootNode->getRef());
+            SyncPrefabOverridesRecursive(rootNode->getRef());
         }
     }
 }
@@ -449,7 +658,7 @@ void PrefabFeature::RefreshPrefabInstancesAfterLoad()
     {
         if (rootNode)
         {
-            RefreshPrefabInstancesRecursive( rootNode->getRef());
+            RefreshPrefabInstancesRecursive(rootNode->getRef());
         }
     }
 }

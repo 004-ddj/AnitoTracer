@@ -9,5 +9,6 @@
 #include "AutoSerializer_Vector.hpp"
 
 #include "ObjectRef.hpp"
+#include "UndoRedoManager.hpp"
 
 #include "PropertyDrawers/PropertyDrawers.hpp"

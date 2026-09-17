@@ -30,6 +30,7 @@ namespace Diligent {
         // Encapsulated state instead of static variables
         ImGuizmo::OPERATION m_CurrentOperation = ImGuizmo::TRANSLATE;
         ImGuizmo::MODE m_CurrentMode = ImGuizmo::LOCAL;
+        bool m_WasUsingGizmo = false;
     };
 
 }

@@ -11,7 +11,26 @@ namespace Diligent {
 
     HierarchyPanel::HierarchyPanel(const std::string& name)
         : BasePanel(name)
-    {}
+    {
+        // Undo/Redo rebuilds the scene tree (new instance IDs, same GUIDs), so
+        // resolve the selection by GUID afterwards instead of losing it.
+        gbe::UndoRedoManager::GetInstance().SetSelectionHooks(
+            [this]() {
+                return m_SelectedObject.GetPtr() ? m_SelectedObject.GetPtr()->GetGUID() : gbe::GUID::Empty();
+            },
+            [this](const gbe::GUID& guid) {
+                if (!guid) {
+                    SetSelectedObject(nullptr);
+                    return;
+                }
+                if (HierarchyObject* obj = gbe::SceneRegistry::GetInstance().Resolve<HierarchyObject>(guid)) {
+                    SetSelectedObject(obj->getRef());
+                }
+                else {
+                    SetSelectedObject(nullptr);
+                }
+            });
+    }
 
     void HierarchyPanel::Draw()
     {

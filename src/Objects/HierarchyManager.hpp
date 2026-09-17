@@ -146,6 +146,22 @@ public:
     std::filesystem::path GetSceneFile() const { return m_sceneFile; }
     void QuickSave();
 
+    // ========================================================================
+    // Undo/Redo
+    // ========================================================================
+
+    // Begins/ends tracking a mutation for undo purposes by snapshotting this
+    // manager's serialized state (which recursively covers every hierarchy
+    // object, component and GBE_SERIALIZE_FIELD-registered property). Calls may
+    // nest; only the outermost pair records a single undo entry.
+    void BeginUndoableAction();
+    void EndUndoableAction();
+
+    void Undo();
+    void Redo();
+    bool CanUndo() const;
+    bool CanRedo() const;
+
 private:
     HierarchyManager() = default;
     ~HierarchyManager() = default;
