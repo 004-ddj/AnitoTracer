@@ -252,6 +252,20 @@ void AnitoTracer_App::SubscribeToStandardEvents()
         &AnitoTracer_App::HandleWindowResizeEvent,
         this
     );
+
+    m_OnPlaySub = gbe::ScopedSubscription::Create<EventArgs>(
+        EVENT_ON_APP_PLAY,
+        &AnitoTracer_App::HandlePlay,
+        this
+    );
+
+    m_OnStopPlaySub = gbe::ScopedSubscription::Create<EventArgs>(
+        EVENT_ON_APP_STOPPLAY,
+        &AnitoTracer_App::HandleStopPlay,
+        this
+    );
+
+
 }
 
 void AnitoTracer_App::InitManagers()
@@ -492,6 +506,25 @@ void AnitoTracer_App::HandleRenderEndEvent(const gbe::EventArgs *)
 {
     //Avoid Spam- uncomment if necessary desu
     //std::cout << "Engine Render End" << std::endl;
+}
+
+void AnitoTracer_App::HandlePlay(const gbe::EventArgs *args)
+{
+    ProjectLoader::QuickSave(); // Do a quicksave first to not lose scene data.
+    AppState::isPlaying = true;
+    GUIManager::GetInstance().RequestGameViewportFocus();
+}
+
+void AnitoTracer_App::HandleStopPlay(const gbe::EventArgs *args)
+{
+    AppState::isPlaying = false;
+
+    // Reload the scene from disk to discard any changes made during play.
+    std::filesystem::path scenePath = ProjectLoader::GetCurrentSceneFile();
+    if (!scenePath.empty())
+        HierarchyManager::GetInstance().LoadScene(scenePath);
+    else
+        std::cerr << "You're supposed to have a scene before being able to play." << std::endl;
 }
 
 void AnitoTracer_App::HandleWindowResizeEvent(const WindowResizeArgs* args)
