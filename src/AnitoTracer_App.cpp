@@ -45,6 +45,8 @@
 
 #include ANITO_EVENT_INCLUDES
 
+#include "miniaudio.h"
+
 using namespace Diligent;
 
 // Global pointer required for the static WindowProc to route messages back to the class instance.
@@ -290,6 +292,25 @@ void AnitoTracer_App::InitManagers()
     m_pEditorTarget = RendererManager::GetInstance().CreateRenderTarget("EditorView");
 
     PlayerInput::RegisterDefaultKeybinds();
+
+    ma_result engineResult;
+    ma_result playResult;
+    ma_engine engine;
+
+    engineResult = ma_engine_init(nullptr, &engine);
+    if (engineResult != MA_SUCCESS){
+        std::cerr << "Failed to load audio engine." << std::endl;
+        return;
+    }
+
+    playResult = ma_engine_play_sound(&engine, "Assets/Audio/sample.wav", nullptr);
+    if (playResult != MA_SUCCESS){
+        std::cerr << "Failed to play sound. Result" << playResult << std::endl;
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    ma_engine_uninit(&engine);
 }
 
 void AnitoTracer_App::OnResize(short width, short height)
