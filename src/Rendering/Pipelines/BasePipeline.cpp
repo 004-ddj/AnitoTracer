@@ -32,8 +32,16 @@ void Diligent::BasePipeline::RenderModel(IDeviceContext* pContext, const ModelRe
     Model* model = modelData.ModelData;
 
     {
-        MapHelper<glm::mat4> CBData(pContext, m_pModelCB, MAP_WRITE, MAP_FLAG_DISCARD);
-        *CBData = glm::transpose(modelData.WorldTransform);
+        MapHelper<ModelConstants> CBData(pContext, m_pModelCB, MAP_WRITE, MAP_FLAG_DISCARD);
+        CBData->Model = glm::transpose(modelData.WorldTransform);
+
+        // Calculate the normal matrix (inverse transpose of the model matrix)
+        glm::mat4 normalMatrix = glm::transpose(glm::inverse(modelData.WorldTransform));
+
+        // Transpose again to convert from GLM column-major to HLSL row-major expectation
+        // Note: glm::transpose(glm::transpose(inverse)) simplifies to just inverse, 
+        // but writing it this way keeps the intent explicit and matches the Model matrix mapping.
+        CBData->NormalMatrix = glm::transpose(normalMatrix);
     }
 
     IBuffer* pBuffs[] = { model->pVertexBuffer };
@@ -124,7 +132,7 @@ void Diligent::BasePipeline::CreateModelConstantBuffer(IRenderDevice* pDevice)
 {
     BufferDesc CBDesc;
     CBDesc.Name = "Model Constant Buffer";
-    CBDesc.Size = sizeof(float4x4);
+    CBDesc.Size = sizeof(ModelConstants);
     CBDesc.Usage = USAGE_DYNAMIC;
     CBDesc.BindFlags = BIND_UNIFORM_BUFFER;
     CBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;

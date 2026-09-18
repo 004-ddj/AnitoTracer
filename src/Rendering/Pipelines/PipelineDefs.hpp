@@ -61,4 +61,9 @@ namespace Diligent {
         glm::mat4 Proj;
     };
 
+    struct ModelConstants {
+        glm::mat4 Model;
+        glm::mat4 NormalMatrix;
+    };
+
 }

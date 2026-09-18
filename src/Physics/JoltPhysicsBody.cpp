@@ -12,20 +12,32 @@ JoltPhysicsBody::JoltPhysicsBody(JPH::BodyID bodyID, JPH::BodyInterface* bodyInt
 	: mBodyID(bodyID), mBodyInterface(bodyInterface), mBodyLockInterface(bodyLockInterface), mMass(mass) {
 }
 
+//Converted from Diligent (Left) to Jolt (Right)
 JPH::RVec3 JoltPhysicsBody::ToJoltVec3(const glm::vec3& value) {
-	return JPH::RVec3(value.x, value.y, value.z);
+	//return JPH::RVec3(value.x, value.y, value.z);
+	// Flip Z-axis to convert from Left-Handed to Right-Handed coordinate system
+	return JPH::RVec3(value.x, value.y, -value.z);
 }
 
 glm::vec3 JoltPhysicsBody::ToGlmVec3(const JPH::Vec3& value) {
-	return glm::vec3(value.GetX(), value.GetY(), value.GetZ());
+	//return glm::vec3(value.GetX(), value.GetY(), value.GetZ());
+	// Flip Z-axis to convert from Right-Handed to Left-Handed coordinate system
+	return glm::vec3(value.GetX(), value.GetY(), -value.GetZ());
 }
 
 JPH::Quat JoltPhysicsBody::ToJoltQuat(const glm::quat& value) {
-	return JPH::Quat(value.x, value.y, value.z, value.w);
+	//return JPH::Quat(value.x, value.y, value.z, value.w);
+	// Convert quaternion from Left-Handed to Right-Handed coordinate system
+	// Inverting the Z-axis requires negating the X and Y components of the quaternion
+	return JPH::Quat(-value.x, -value.y, value.z, value.w);
 }
 
 glm::quat JoltPhysicsBody::ToGlmQuat(const JPH::Quat& value) {
-	return glm::quat(value.GetW(), value.GetX(), value.GetY(), value.GetZ());
+	//return glm::quat(value.GetW(), value.GetX(), value.GetY(), value.GetZ());
+	// Convert quaternion from Right-Handed to Left-Handed coordinate system
+	// Inverting the Z-axis requires negating the X and Y components of the quaternion
+	// Note: glm::quat constructor takes arguments as (w, x, y, z)
+	return glm::quat(value.GetW(), -value.GetX(), -value.GetY(), value.GetZ());
 }
 
 void JoltPhysicsBody::SetPosition(const glm::vec3& position) {
