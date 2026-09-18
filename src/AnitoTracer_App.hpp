@@ -76,6 +76,8 @@ private:
     void HandleInitializeEvent(const gbe::EventArgs* args);
     void HandleRenderStartEvent(const gbe::EventArgs* args);
     void HandleRenderEndEvent(const gbe::EventArgs* args);
+    void HandlePlay(const gbe::EventArgs* args);
+    void HandleStopPlay(const gbe::EventArgs* args);
 
 private:
     Diligent::RefCntAutoPtr<Diligent::IRenderDevice>  m_pDevice;
@@ -95,6 +97,8 @@ private:
     ScopedSubscription m_OnInitializeSub;
     ScopedSubscription m_OnRenderStartSub;
     ScopedSubscription m_OnRenderEndSub;
+    ScopedSubscription m_OnPlaySub;
+    ScopedSubscription m_OnStopPlaySub;
 
     gbe::ScopedSubscription m_OnWindowResizeSub;
     void HandleWindowResizeEvent(const WindowResizeArgs* args);

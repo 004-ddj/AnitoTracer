@@ -10,6 +10,8 @@
 #include "../AppState.hpp"
 #include "GUIManager.hpp"
 
+#include "Event/EventSystem.hpp"
+
 namespace Diligent {
 
     void MenuBar::Draw(bool& appRunning, const std::vector<std::unique_ptr<BasePanel>>& panels)
@@ -60,22 +62,14 @@ namespace Diligent {
                 {
                     if (ImGui::MenuItem("Play"))
                     {
-                        AppState::isPlaying = true;
-                        GUIManager::GetInstance().RequestGameViewportFocus();
+                        gbe::EventSystem::DispatchTo(EVENT_ON_APP_PLAY, std::make_unique<gbe::EventArgs>());
                     }
                 }
                 else
                 {
                     if (ImGui::MenuItem("Stop"))
                     {
-                        AppState::isPlaying = false;
-
-                        // Reload the scene from disk to discard any changes made during play.
-                        std::filesystem::path scenePath = HierarchyManager::GetInstance().GetSceneFile();
-                        if (!scenePath.empty())
-                            HierarchyManager::GetInstance().LoadScene(scenePath);
-                        else
-                            HierarchyManager::GetInstance().CreateNewScene();
+                        gbe::EventSystem::DispatchTo(EVENT_ON_APP_STOPPLAY, std::make_unique<gbe::EventArgs>());
                     }
                 }
             }
