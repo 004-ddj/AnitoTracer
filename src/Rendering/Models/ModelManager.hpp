@@ -12,7 +12,7 @@ public:
     }
 
     // Must be called once before loading any models
-    void Initialize(IRenderDevice* pDevice, IDeviceContext* mContext);
+    void Initialize(IRenderDevice* pDevice, IDeviceContext* mContext, bool rayTracing);
 
     // Returns a pointer to the cached model, or loads it if not present
     Model* LoadModel(const std::string& filepath);
@@ -40,6 +40,7 @@ private:
 
     IRenderDevice* m_pDevice = nullptr;
     IDeviceContext* pContext = nullptr;
+    bool m_rayTracing = false;
 
     std::unordered_map<std::string, std::unique_ptr<Model>> m_ModelCache;
     std::unordered_map<std::string, RefCntAutoPtr<ITextureView>> m_TextureCache;

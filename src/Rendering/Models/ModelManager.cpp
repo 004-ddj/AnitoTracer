@@ -1,9 +1,10 @@
 #include "ModelManager.hpp"
 #include "ModelManager.hpp"
 
-void ModelManager::Initialize(IRenderDevice* pDevice, IDeviceContext* mContext) {
+void ModelManager::Initialize(IRenderDevice* pDevice, IDeviceContext* mContext, bool rayTracing) {
     m_pDevice = pDevice;
     pContext = mContext;
+    m_rayTracing = rayTracing;
 
     LoadDefaultWhite();
 }
@@ -257,7 +258,7 @@ Model* ModelManager::LoadModel(const std::string& filepath) {
     VertBuffDesc.Name = "Model Vertex Buffer";
     VertBuffDesc.Usage = USAGE_IMMUTABLE;
     // ADDED: BIND_RAY_TRACING is required for buffers used in BLAS building
-    VertBuffDesc.BindFlags = BIND_VERTEX_BUFFER | BIND_RAY_TRACING;
+    VertBuffDesc.BindFlags = BIND_VERTEX_BUFFER | (m_rayTracing ? BIND_RAY_TRACING : BIND_NONE);
     VertBuffDesc.Size = vertices.size() * sizeof(Vertex);
 
     BufferData VBData;
@@ -269,7 +270,7 @@ Model* ModelManager::LoadModel(const std::string& filepath) {
     IndBuffDesc.Name = "Model Index Buffer";
     IndBuffDesc.Usage = USAGE_IMMUTABLE;
     // ADDED: BIND_RAY_TRACING is required for buffers used in BLAS building
-    IndBuffDesc.BindFlags = BIND_INDEX_BUFFER | BIND_RAY_TRACING;
+    IndBuffDesc.BindFlags = BIND_INDEX_BUFFER | (m_rayTracing ? BIND_RAY_TRACING : BIND_NONE);
     IndBuffDesc.Size = indices.size() * sizeof(Uint32);
 
     BufferData IBData;
@@ -278,63 +279,65 @@ Model* ModelManager::LoadModel(const std::string& filepath) {
     m_pDevice->CreateBuffer(IndBuffDesc, &IBData, &pModel->pIndexBuffer);
 
     // 4. Describe Acceleration Structure
-    BLASTriangleDesc TriangleDesc;
-    TriangleDesc.GeometryName = "ModelGeometry";
-    TriangleDesc.MaxVertexCount = static_cast<Uint32>(vertices.size());
-    TriangleDesc.VertexValueType = VT_FLOAT32;
-    TriangleDesc.VertexComponentCount = 3;
-    TriangleDesc.MaxPrimitiveCount = static_cast<Uint32>(indices.size()) / 3;
-    TriangleDesc.IndexType = VT_UINT32;
+    if (m_rayTracing) {
+        BLASTriangleDesc TriangleDesc;
+        TriangleDesc.GeometryName = "ModelGeometry";
+        TriangleDesc.MaxVertexCount = static_cast<Uint32>(vertices.size());
+        TriangleDesc.VertexValueType = VT_FLOAT32;
+        TriangleDesc.VertexComponentCount = 3;
+        TriangleDesc.MaxPrimitiveCount = static_cast<Uint32>(indices.size()) / 3;
+        TriangleDesc.IndexType = VT_UINT32;
 
-    BottomLevelASDesc ASDesc;
-    ASDesc.Name = "Model BLAS";
-    ASDesc.Flags = RAYTRACING_BUILD_AS_PREFER_FAST_TRACE;
-    ASDesc.pTriangles = &TriangleDesc;
-    ASDesc.TriangleCount = 1;
+        BottomLevelASDesc ASDesc;
+        ASDesc.Name = "Model BLAS";
+        ASDesc.Flags = RAYTRACING_BUILD_AS_PREFER_FAST_TRACE;
+        ASDesc.pTriangles = &TriangleDesc;
+        ASDesc.TriangleCount = 1;
 
-    m_pDevice->CreateBLAS(ASDesc, &pModel->pBLAS);
+        m_pDevice->CreateBLAS(ASDesc, &pModel->pBLAS);
 
-    if(!pModel->pBLAS)
-        return nullptr;
+        if(!pModel->pBLAS)
+            return nullptr;
 
-    // 5. Query Scratch Size & Allocate Scratch Buffer
-    ScratchBufferSizes ScratchSizes = pModel->pBLAS->GetScratchBufferSizes();
+        // 5. Query Scratch Size & Allocate Scratch Buffer
+        ScratchBufferSizes ScratchSizes = pModel->pBLAS->GetScratchBufferSizes();
 
-    BufferDesc ScratchBuffDesc;
-    ScratchBuffDesc.Name = "BLAS Build Scratch Buffer";
-    ScratchBuffDesc.Size = ScratchSizes.Build;
-    ScratchBuffDesc.Usage = USAGE_DEFAULT;
-    ScratchBuffDesc.BindFlags = BIND_RAY_TRACING;
+        BufferDesc ScratchBuffDesc;
+        ScratchBuffDesc.Name = "BLAS Build Scratch Buffer";
+        ScratchBuffDesc.Size = ScratchSizes.Build;
+        ScratchBuffDesc.Usage = USAGE_DEFAULT;
+        ScratchBuffDesc.BindFlags = BIND_RAY_TRACING;
 
-    RefCntAutoPtr<IBuffer> pScratchBuffer;
-    m_pDevice->CreateBuffer(ScratchBuffDesc, nullptr, &pScratchBuffer);
+        RefCntAutoPtr<IBuffer> pScratchBuffer;
+        m_pDevice->CreateBuffer(ScratchBuffDesc, nullptr, &pScratchBuffer);
 
-    // 6. Build BLAS on GPU
-    BLASBuildTriangleData TriData;
-    TriData.GeometryName = "ModelGeometry";
-    TriData.pVertexBuffer = pModel->pVertexBuffer;
-    TriData.VertexStride = sizeof(Vertex);
-    TriData.VertexOffset = 0;
-    TriData.VertexCount = static_cast<Uint32>(vertices.size());
-    TriData.VertexValueType = VT_FLOAT32;
-    TriData.VertexComponentCount = 3;
-    TriData.pIndexBuffer = pModel->pIndexBuffer;
-    TriData.IndexType = VT_UINT32;
-    TriData.IndexOffset = 0;
-    TriData.PrimitiveCount = static_cast<Uint32>(indices.size()) / 3;
+        // 6. Build BLAS on GPU
+        BLASBuildTriangleData TriData;
+        TriData.GeometryName = "ModelGeometry";
+        TriData.pVertexBuffer = pModel->pVertexBuffer;
+        TriData.VertexStride = sizeof(Vertex);
+        TriData.VertexOffset = 0;
+        TriData.VertexCount = static_cast<Uint32>(vertices.size());
+        TriData.VertexValueType = VT_FLOAT32;
+        TriData.VertexComponentCount = 3;
+        TriData.pIndexBuffer = pModel->pIndexBuffer;
+        TriData.IndexType = VT_UINT32;
+        TriData.IndexOffset = 0;
+        TriData.PrimitiveCount = static_cast<Uint32>(indices.size()) / 3;
 
-    BuildBLASAttribs BuildAttribs;
-    BuildAttribs.pBLAS = pModel->pBLAS;
-    BuildAttribs.pTriangleData = &TriData;
-    BuildAttribs.TriangleDataCount = 1;
-    BuildAttribs.pScratchBuffer = pScratchBuffer;
+        BuildBLASAttribs BuildAttribs;
+        BuildAttribs.pBLAS = pModel->pBLAS;
+        BuildAttribs.pTriangleData = &TriData;
+        BuildAttribs.TriangleDataCount = 1;
+        BuildAttribs.pScratchBuffer = pScratchBuffer;
 
-    // Transition the buffers so Vulkan can safely read/write during the BLAS build
-    BuildAttribs.BLASTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
-    BuildAttribs.GeometryTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
-    BuildAttribs.ScratchBufferTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        // Transition the buffers so Vulkan can safely read/write during the BLAS build
+        BuildAttribs.BLASTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        BuildAttribs.GeometryTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+        BuildAttribs.ScratchBufferTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
 
-    pContext->BuildBLAS(BuildAttribs);
+        pContext->BuildBLAS(BuildAttribs);
+    }
 
     // Store in cache and return
     Model* rawPtr = pModel.get();

@@ -272,7 +272,7 @@ void AnitoTracer_App::InitManagers()
 {
 
     Diligent::ShaderManager::GetInstance().Initialize(m_pDevice, "Shaders");
-    ModelManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext);
+    ModelManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext, RendererManager::GetInstance().IsRayTracingSupported());
     
     AssetPipeline::IncludeFolder("Assets");
 
