@@ -1,6 +1,7 @@
 #include "HybridPipeline.hpp"
 #include "../RenderData.hpp"
 #include "../../UserSettings.hpp"
+#include <string>
 
 void Diligent::HybridPipeline::InitializePipeline(IRenderDevice* pDevice, ISwapChain* _pSwapChain)
 {
@@ -27,7 +28,7 @@ void Diligent::HybridPipeline::InitializePipeline(IRenderDevice* pDevice, ISwapC
     GraphicsPipeline.InputLayout.LayoutElements = std_layout.data();
     GraphicsPipeline.InputLayout.NumElements = static_cast<Uint32>(std_layout.size());
 
-    //Use the same as the deferred now
+    // Use the same as the deferred now
     auto pVS = ShaderManager::GetInstance().GetShader("main_vs.hlsl", Diligent::SHADER_TYPE_VERTEX, "main_vs");
     auto pPS = ShaderManager::GetInstance().GetShader("hybrid_ps.hlsl", Diligent::SHADER_TYPE_PIXEL, "main_ps");
     PSOCreateInfo.pVS = pVS;
@@ -60,6 +61,8 @@ void Diligent::HybridPipeline::InitializePipeline(IRenderDevice* pDevice, ISwapC
     if (auto* pVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "LightConstants"))   pVar->Set(m_pLightCB);
     if (auto* pVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "PBRMaterialConstants")) pVar->Set(m_pMaterialCB);
     if (auto* pVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "ShadowSettings"))   pVar->Set(m_pShadowCB);
+
+    // The TLAS is bound here, so it MUST have a valid state before rendering!
     if (auto* pVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "g_TLAS"))           pVar->Set(m_pTLAS);
 }
 
@@ -91,20 +94,31 @@ void Diligent::HybridPipeline::InitializeTLAS(IRenderDevice* pDevice, Uint32 max
 
 void Diligent::HybridPipeline::BuildSceneTLAS(IDeviceContext* pContext, const RenderData& renderData)
 {
-    if (renderData.Models.empty() || !m_pTLAS) return;
+    // Do not return early if models are empty! We must always satisfy the TLAS build state.
+    if (!m_pTLAS) return;
 
     std::vector<TLASBuildInstanceData> Instances;
     Instances.reserve(renderData.Models.size());
 
+    std::vector<std::string> InstanceNames;
+    InstanceNames.reserve(renderData.Models.size());
+
     for (size_t i = 0; i < renderData.Models.size(); ++i) {
         const auto& modelInstance = renderData.Models[i];
-        if (!modelInstance.ModelData->pBLAS) continue;
+
+        // Catch models loaded during deferred rendering and build their BLAS now
+        if (!modelInstance.ModelData->pBLAS) {
+            ModelManager::GetInstance().BuildBLAS(modelInstance.ModelData);
+        }
 
         if (!modelInstance.ModelData->pBLAS || modelInstance.OpaqueSubmeshIndices.empty())
             continue;
 
         TLASBuildInstanceData tlasInst{};
-        tlasInst.InstanceName = "ModelInstance " + i;
+
+        InstanceNames.push_back("ModelInstance_" + std::to_string(i));
+        tlasInst.InstanceName = InstanceNames.back().c_str();
+
         tlasInst.pBLAS = modelInstance.ModelData->pBLAS;
         tlasInst.CustomId = static_cast<Uint32>(i);
         tlasInst.Flags = RAYTRACING_INSTANCE_NONE;
@@ -125,21 +139,22 @@ void Diligent::HybridPipeline::BuildSceneTLAS(IDeviceContext* pContext, const Re
         Instances.push_back(tlasInst);
     }
 
-    if (Instances.empty()) return;
+    // Safely abort if the scene is entirely empty to prevent pInstances nullptr crash
+    if (Instances.empty()) {
+        return;
+    }
 
     Uint32 requiredInstanceBufferSize = static_cast<Uint32>(Instances.size() * sizeof(TLASBuildInstanceData));
 
-    if (!m_pTLASInstanceBuffer || m_pTLASInstanceBuffer->GetDesc().Size < requiredInstanceBufferSize) {
-
-        //Release old buffer and create a new one
+    // Only recreate the buffer if we actually have instances and need more space
+    if (requiredInstanceBufferSize > 0 && (!m_pTLASInstanceBuffer || m_pTLASInstanceBuffer->GetDesc().Size < requiredInstanceBufferSize)) {
         if (m_pTLASInstanceBuffer) {
             m_pTLASInstanceBuffer.Release();
         }
 
         BufferDesc InstBuffDesc;
         InstBuffDesc.Name = "TLAS Instance Buffer";
-        InstBuffDesc.Size = requiredInstanceBufferSize * 2;
-
+        InstBuffDesc.Size = requiredInstanceBufferSize * 2; // Allocate extra buffer space
         InstBuffDesc.Usage = USAGE_DEFAULT;
         InstBuffDesc.BindFlags = BIND_RAY_TRACING;
         InstBuffDesc.CPUAccessFlags = CPU_ACCESS_NONE;
@@ -147,9 +162,11 @@ void Diligent::HybridPipeline::BuildSceneTLAS(IDeviceContext* pContext, const Re
         m_pDevice->CreateBuffer(InstBuffDesc, nullptr, &m_pTLASInstanceBuffer);
     }
 
+    // Always dispatch the build command, even if Instances array is empty. 
+    // This provides Vulkan with an initialized, zero-instance TLAS memory footprint.
     BuildTLASAttribs BuildAttribs;
     BuildAttribs.pTLAS = m_pTLAS;
-    BuildAttribs.pInstances = Instances.data();
+    BuildAttribs.pInstances = Instances.data(); // Safely passing the data pointer
     BuildAttribs.InstanceCount = static_cast<Uint32>(Instances.size());
     BuildAttribs.pInstanceBuffer = m_pTLASInstanceBuffer;
     BuildAttribs.pScratchBuffer = m_pTLASScratchBuffer;
