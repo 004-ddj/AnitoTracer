@@ -224,6 +224,9 @@ bool AnitoTracer_App::InitEngine()
 
     bool bSupportsRayTracing = (m_pDevice->GetDeviceInfo().Features.RayTracing == Diligent::DEVICE_FEATURE_STATE_ENABLED);
 
+    //For testing
+    //bSupportsRayTracing = false;
+    ModelManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext, bSupportsRayTracing);
     RendererManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext, m_pSwapChain, bSupportsRayTracing);
 
     return true;
@@ -274,7 +277,7 @@ void AnitoTracer_App::InitManagers()
 {
 
     Diligent::ShaderManager::GetInstance().Initialize(m_pDevice, "Shaders");
-    ModelManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext, RendererManager::GetInstance().IsRayTracingSupported());
+    //ModelManager::GetInstance().Initialize(m_pDevice, m_pImmediateContext);
     
     AssetPipeline::IncludeFolder("Assets");
 
