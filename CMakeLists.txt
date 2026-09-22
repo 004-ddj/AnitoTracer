@@ -62,6 +62,8 @@ add_subdirectory(src/Rendering)
 
 add_subdirectory(src/Tools)
 
+add_subdirectory(src/Audio)
+
 # Add source to this project's executable.
 add_executable (AnitoTracer_Rebuild WIN32 "src/UserSettings.hpp" "AnitoTracer_Rebuild.cpp" "AnitoTracer_Rebuild.h" "src/AnitoTracer_App.hpp" "src/AnitoTracer_App.cpp"
   src/UI/Panels/FileExplorerPanel.cpp
