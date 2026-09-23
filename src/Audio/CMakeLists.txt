@@ -15,3 +15,6 @@ target_link_libraries(${CUR_TARGET_NAME}
 	PUBLIC
 	anito::asset
 )
+
+find_path(MINIAUDIO_INCLUDE_DIR "miniaudio.h")
+target_include_directories(${CUR_TARGET_NAME} PUBLIC ${MINIAUDIO_INCLUDE_DIR})
