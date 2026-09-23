@@ -142,7 +142,7 @@ private:
     float m_groundCheckOffset = 0.1f;
     GBE_SERIALIZE_FIELD_W_NAME(m_groundCheckOffset, "Ground Check Offset");
 
-    float m_groundCheckDistance = 1.2f;
+    float m_groundCheckDistance = 0.5f;
     GBE_SERIALIZE_FIELD_W_NAME(m_groundCheckDistance, "Ground Check Distance");
 
     bool m_jumpHeld = false;
