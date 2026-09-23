@@ -7,6 +7,7 @@ cbuffer CameraConstants
 cbuffer ModelConstants
 {
     float4x4 g_Model;
+    float4x4 g_NormalMatrix;
 };
 
 struct VertexInput
