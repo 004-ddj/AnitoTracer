@@ -18,23 +18,23 @@ AudioClip* AudioManager::LoadClip(const std::string& filepath) {
     return rawPtr;
 }
 
-//  Custom deleter for m_pAudioSound; release miniaudio's internal
+//  Custom deleter for m_PlayingSounds; release miniaudio's internal
 //  resources before freeing the ma_sound itself.   
 void AudioManager::AudioSoundDeleter::operator()(ma_sound* sound) const {
     ma_sound_uninit(sound);
     delete sound;
 }
 
-void AudioManager::PlayClip (AudioClip* audioClip) {
+uint64_t AudioManager::PlayClip (AudioClip* audioClip) {
     // Return if audio engine never initialized
     if (!m_AudioEngineInitialized) {
         std::cerr << "Failed to play clip: audio engine not initialized." << std::endl;
-        return;
+        return 0;
     }
 
     if (!audioClip) {
         std::cerr << "No audio found." << std::endl;
-        return;
+        return 0;
     }
 
     // Get the file path from audioClip
@@ -50,15 +50,19 @@ void AudioManager::PlayClip (AudioClip* audioClip) {
     if (soundResult != MA_SUCCESS){
         std::cerr << "Failed to load sound." << std::endl;
         delete newSound;
-        return;
+        return 0;
     }
 
     // Hand the newSound off to m_pAudioSound & start playback
-    m_pAudioSound.reset(newSound);
-    ma_sound_start(m_pAudioSound.get());
+    uint64_t newID = m_NextSoundID++;
+
+    m_PlayingSounds[newID] = std::unique_ptr<ma_sound, AudioSoundDeleter>(newSound);
+    ma_sound_start(m_PlayingSounds[newID].get());
+
+    return newID;
 }
 
-void AudioManager::StopClip () {
+void AudioManager::StopClip (uint64_t soundID) {
     // Return if audio engine never initialized
     if (!m_AudioEngineInitialized) {
         std::cerr << "Failed to play clip: audio engine not initialized." << std::endl;
@@ -66,15 +70,22 @@ void AudioManager::StopClip () {
     }
     
     // Return if there is no audio to stop
-    if (!m_pAudioSound) {
-        std::cerr << "No audio loaded." << std::endl;
+    auto it = m_PlayingSounds.find(soundID);
+    if (it == m_PlayingSounds.end()) {
+        std::cerr << "Audio not found. ID: " << soundID << std::endl;
         return;
     }
 
     // Stop playback without destroying sound
-    ma_sound_stop(m_pAudioSound.get());
+    ma_sound_stop(it->second.get());
+    m_PlayingSounds.erase(it);
 }
 
 void AudioManager::ClearCache() {
     m_AudioCache.clear();
+    ClearClips();
+}
+
+void AudioManager::ClearClips() {
+    m_PlayingSounds.clear();
 }

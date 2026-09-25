@@ -17,10 +17,10 @@ public:
     AudioClip* LoadClip(const std::string& filepath);
 
     // Plays a given clip
-    void PlayClip(AudioClip* audioClip);
+    uint64_t PlayClip(AudioClip* audioClip);
 
     // Stop a currently playing sound
-    void StopClip();
+    void StopClip(uint64_t soundID);
 
     // Clears the cache
     void ClearCache();
@@ -44,7 +44,10 @@ private:
 
     ma_engine m_AudioEngine;
     bool m_AudioEngineInitialized = false;
-    std::unique_ptr<ma_sound, AudioSoundDeleter> m_pAudioSound;
+    uint64_t m_NextSoundID = 1;
+    std::unordered_map<uint64_t, std::unique_ptr<ma_sound, AudioSoundDeleter>> m_PlayingSounds;
 
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
+
+    void ClearClips();
 };
