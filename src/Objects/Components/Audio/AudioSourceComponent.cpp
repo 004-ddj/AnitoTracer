@@ -2,6 +2,7 @@
 
 void AudioSourceComponent::Play() {
     if (!HasAudioClip()) return;
+    if (m_soundID != 0) AudioManager::GetInstance().StopClip(m_soundID);;
     m_soundID = AudioManager::GetInstance().PlayClip(m_audioClip.Get());
 }
 
