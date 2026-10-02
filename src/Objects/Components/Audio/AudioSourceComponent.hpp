@@ -22,7 +22,7 @@ public:
     AudioSourceComponent(AudioSourceComponent&&) = default;
     AudioSourceComponent& operator=(AudioSourceComponent&&) = default;
 
-    // --- Core Audio Clip Setters / Getters ---
+    // Audio Source Setters / Getters
 
     void SetAudioClip(gbe::AssetRef<AudioClip> audioClip) { m_audioClip = audioClip; }
     gbe::AssetRef<AudioClip> GetAudioClip() const { return m_audioClip; }

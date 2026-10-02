@@ -51,6 +51,8 @@ set(${CUR_TARGET_NAME}_src
 
 	Components/Audio/AudioSourceComponent.hpp
 	Components/Audio/AudioSourceComponent.cpp
+	Components/Audio/AudioListenerComponent.hpp
+	Components/Audio/AudioListenerComponent.cpp
 
 	HierarchyObject.hpp
 	HierarchyObject.cpp

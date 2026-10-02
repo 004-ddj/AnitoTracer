@@ -65,7 +65,7 @@ uint64_t AudioManager::PlayClip (AudioClip* audioClip) {
 void AudioManager::StopClip (uint64_t soundID) {
     // Return if audio engine never initialized
     if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to play clip: audio engine not initialized." << std::endl;
+        std::cerr << "Failed to stop clip: audio engine not initialized." << std::endl;
         return;
     }
     
@@ -79,6 +79,28 @@ void AudioManager::StopClip (uint64_t soundID) {
     // Stop playback without destroying sound
     ma_sound_stop(it->second.get());
     m_PlayingSounds.erase(it);
+}
+
+void AudioManager::SetListenerPosition(glm::vec3 position) {
+    // Return if audio engine never initialized
+    if (!m_AudioEngineInitialized) {
+        std::cerr << "Failed to set listener position: audio engine not initialized." << std::endl;
+        return;
+    }
+
+    // Set engine position
+    ma_engine_listener_set_position(&m_AudioEngine, 0, position.x, position.y, position.z);
+}
+
+void AudioManager::SetListenerDirection(glm::vec3 direction) {
+    // Return if audio engine never initialized
+    if (!m_AudioEngineInitialized) {
+        std::cerr << "Failed to set listener direction: audio engine not initialized." << std::endl;
+        return;
+    }
+
+    // Set engine direction
+    ma_engine_listener_set_direction(&m_AudioEngine, 0, direction.x, direction.y, direction.z);
 }
 
 void AudioManager::ClearCache() {

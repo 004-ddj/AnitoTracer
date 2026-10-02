@@ -5,6 +5,8 @@
 #include "AssetLoading/AssetLoader.hpp"
 #include "miniaudio.h"
 
+#include <glm/glm.hpp>
+
 class AudioManager : public gbe::AssetLoader<AudioClip> {
 public:
     static AudioManager& GetInstance() {
@@ -21,6 +23,10 @@ public:
 
     // Stop a currently playing sound
     void StopClip(uint64_t soundID);
+
+    // Set listener position and direction
+    void SetListenerPosition(glm::vec3 position);
+    void SetListenerDirection(glm::vec3 direction);
 
     // Clears the cache
     void ClearCache();
