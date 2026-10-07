@@ -23,7 +23,13 @@ public:
 
     void OnUpdate(float deltaTime) override;
 
+    void SetEnabled(bool enabled) { m_enabled = enabled; }
+    bool IsEnabled() const { return m_enabled; }
+
 private:
+    bool m_enabled = true;
+
+    GBE_SERIALIZE_FIELD_W_NAME(m_enabled, "Enabled");
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioListenerComponent, ComponentBase);
 };
 
