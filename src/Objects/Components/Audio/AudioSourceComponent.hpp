@@ -3,9 +3,11 @@
 #include "Components/ComponentBase.hpp"
 #include "AssetRef.hpp"
 #include "AudioManager.hpp"
+#include "Types/UpdateTrigger.hpp"
+#include "HierarchyObject.hpp"
 #include "AudioClip.hpp"
 
-class AudioSourceComponent : public ComponentBase {
+class AudioSourceComponent : public ComponentBase, public gbe::ITrigger<UpdateTrigger> {
 public:
     // Initializes the component with an optional loaded audio clip and owner
     AudioSourceComponent (gbe::AssetRef<AudioClip> audioClip = gbe::AssetRef<AudioClip>(), 
@@ -21,6 +23,8 @@ public:
     // Allow moving for container compatibility
     AudioSourceComponent(AudioSourceComponent&&) = default;
     AudioSourceComponent& operator=(AudioSourceComponent&&) = default;
+
+    void OnUpdate(float deltaTime) override;
 
     // Audio Source Setters / Getters
 

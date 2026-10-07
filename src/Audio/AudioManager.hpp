@@ -24,6 +24,9 @@ public:
     // Stop a currently playing sound
     void StopClip(uint64_t soundID);
 
+    // Set sound position
+    void SetSoundPosition(uint64_t soundID, glm::vec3 position);
+
     // Set listener position and direction
     void SetListenerPosition(glm::vec3 position);
     void SetListenerDirection(glm::vec3 direction);

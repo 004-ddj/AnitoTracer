@@ -72,13 +72,31 @@ void AudioManager::StopClip (uint64_t soundID) {
     // Return if there is no audio to stop
     auto it = m_PlayingSounds.find(soundID);
     if (it == m_PlayingSounds.end()) {
-        std::cerr << "Audio not found. ID: " << soundID << std::endl;
+        std::cerr << "Audio not found: stop clip failed. ID: " << soundID << std::endl;
         return;
     }
 
     // Stop playback without destroying sound
     ma_sound_stop(it->second.get());
     m_PlayingSounds.erase(it);
+}
+
+void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
+    // Return if audio engine never initialized
+    if (!m_AudioEngineInitialized) {
+        std::cerr << "Failed to set sound position: audio engine not initialized." << std::endl;
+        return;
+    }
+
+    // Return if there is no sound to set position
+    auto it = m_PlayingSounds.find(soundID);
+    if (it == m_PlayingSounds.end()) {
+        std::cerr << "Audio not found: set sound position failed. ID: " << soundID << std::endl;
+        return;
+    }
+
+    // Set sound position
+    ma_sound_set_position(it->second.get(), position.x, position.y, position.z);
 }
 
 void AudioManager::SetListenerPosition(glm::vec3 position) {

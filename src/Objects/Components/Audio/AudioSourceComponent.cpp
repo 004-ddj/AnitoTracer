@@ -1,5 +1,23 @@
 #include "AudioSourceComponent.hpp"
 
+void AudioSourceComponent::OnUpdate(float deltaTime) {
+    if (m_soundID == 0) return;
+    (void)deltaTime;
+
+    // Get Transform from component's owner
+    HierarchyObject* owner = GetOwner().GetPtr();
+    if (!owner) return;
+
+    Transform* audioSourceTransform = owner->GetTransform();
+    if (!audioSourceTransform) return;
+
+    // Get position from Transform
+    const glm::vec3 audioSourcePos = audioSourceTransform->GetPosition();
+
+    // Set sound position
+    AudioManager::GetInstance().SetSoundPosition(m_soundID, audioSourcePos);
+}
+
 void AudioSourceComponent::Play() {
     if (!HasAudioClip()) return;
     if (m_soundID != 0) AudioManager::GetInstance().StopClip(m_soundID);;
