@@ -14,7 +14,7 @@ public:
         gbe::IInstanceManager<HierarchyObject>::Ref owner = {}) : ComponentBase("AudioSourceComponent", owner), 
         m_audioClip(audioClip) {}
 
-    ~AudioSourceComponent() override = default;
+    ~AudioSourceComponent() override { Stop(); }
 
     // Delete copy constructor/assignment to prevent object slicing and resource duplication
     AudioSourceComponent(const AudioSourceComponent&) = delete;

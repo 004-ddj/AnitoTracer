@@ -81,6 +81,10 @@ void AudioManager::StopClip (uint64_t soundID) {
     m_PlayingSounds.erase(it);
 }
 
+glm::vec3 AudioManager::ConvertHandedness(const glm::vec3& v) {
+    return glm::vec3(v.x, v.y, -v.z);
+}
+
 void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
     // Return if audio engine never initialized
     if (!m_AudioEngineInitialized) {
@@ -96,7 +100,8 @@ void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
     }
 
     // Set sound position
-    ma_sound_set_position(it->second.get(), position.x, position.y, position.z);
+    glm::vec3 p = ConvertHandedness(position);
+    ma_sound_set_position(it->second.get(), p.x, p.y, p.z);
 }
 
 void AudioManager::SetListenerPosition(glm::vec3 position) {
@@ -107,7 +112,8 @@ void AudioManager::SetListenerPosition(glm::vec3 position) {
     }
 
     // Set engine position
-    ma_engine_listener_set_position(&m_AudioEngine, 0, position.x, position.y, position.z);
+    glm::vec3 p = ConvertHandedness(position);
+    ma_engine_listener_set_position(&m_AudioEngine, 0, p.x, p.y, p.z);
 }
 
 void AudioManager::SetListenerDirection(glm::vec3 direction) {
@@ -118,7 +124,8 @@ void AudioManager::SetListenerDirection(glm::vec3 direction) {
     }
 
     // Set engine direction
-    ma_engine_listener_set_direction(&m_AudioEngine, 0, direction.x, direction.y, direction.z);
+    glm::vec3 d = ConvertHandedness(direction);
+    ma_engine_listener_set_direction(&m_AudioEngine, 0, d.x, d.y, d.z);
 }
 
 void AudioManager::ClearCache() {

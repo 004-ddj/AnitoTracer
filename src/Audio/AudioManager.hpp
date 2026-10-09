@@ -58,5 +58,7 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
 
+    static glm::vec3 ConvertHandedness (const glm::vec3& v);
+
     void ClearClips();
 };
