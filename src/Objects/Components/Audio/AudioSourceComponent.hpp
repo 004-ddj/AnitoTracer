@@ -36,11 +36,20 @@ public:
     void Play();
     void Stop();
 
+    void SetVolume(float soundVolume);
+    float GetVolume() const { return m_soundVolume; }
+
 private:
     gbe::AssetRef<AudioClip> m_audioClip;
     uint64_t m_soundID = 0;
 
+    void UpdateSoundPosition();
+
     GBE_SERIALIZE_FIELD(m_audioClip);
+
+    float m_soundVolume = 100.0f;
+    GBE_SERIALIZE_FIELD(m_soundVolume);
+
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioSourceComponent, ComponentBase);
 };
 

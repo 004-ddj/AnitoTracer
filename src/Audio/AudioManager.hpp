@@ -6,6 +6,7 @@
 #include "miniaudio.h"
 
 #include <glm/glm.hpp>
+#include <algorithm>
 
 class AudioManager : public gbe::AssetLoader<AudioClip> {
 public:
@@ -18,14 +19,18 @@ public:
     // Returns a pointer to the cached clip, or loads it if not present
     AudioClip* LoadClip(const std::string& filepath);
 
-    // Plays a given clip
-    uint64_t PlayClip(AudioClip* audioClip);
+    // Create audio clip and assign sound ID
+    uint64_t CreateClip(AudioClip* audioClip);
 
-    // Stop a currently playing sound
+    // Start or stop given clip
+    void StartClip(uint64_t soundID);
     void StopClip(uint64_t soundID);
 
     // Set sound position
     void SetSoundPosition(uint64_t soundID, glm::vec3 position);
+
+    // Set sound volume
+    void SetSoundVolume(uint64_t soundID, float volume);
 
     // Set listener position and direction
     void SetListenerPosition(glm::vec3 position);
@@ -58,6 +63,7 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
 
+    // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v);
 
     void ClearClips();

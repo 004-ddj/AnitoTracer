@@ -14,12 +14,16 @@ public:
         if (!ImGui::CollapsingHeader("Audio Source Component", ImGuiTreeNodeFlags_DefaultOpen))
             return;
 
-        gbe::PropertyDrawer<gbe::AssetRef<AudioClip>>::Draw("Clip", clipReference);
+        gbe::PropertyDrawer<gbe::AssetRef<AudioClip>>::Draw("Audio Clip", clipReference);
 
         if (ImGui::Button("Play"))
             audioComponent->Play();
 
         if (ImGui::Button("Stop"))
             audioComponent->Stop();
+
+        float volume = audioComponent->GetVolume();
+        if(ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp))
+            audioComponent->SetVolume(volume);
     }
 };
