@@ -23,7 +23,16 @@ public:
             audioComponent->Stop();
 
         float volume = audioComponent->GetVolume();
-        if(ImGui::SliderFloat("Volume", &volume, 0.0f, 100.0f, "%.0f%%", ImGuiSliderFlags_AlwaysClamp))
+        if(ImGui::SliderFloat("Volume", &volume, AudioManager::MinVolume, AudioManager::MaxVolume, "%.0f%%", ImGuiSliderFlags_AlwaysClamp))
             audioComponent->SetVolume(volume);
+
+        bool loop = audioComponent->GetLoop();
+        if (ImGui::Checkbox("Loop", &loop))
+            audioComponent->SetLoop(loop);
+
+        float pitch = audioComponent->GetPitch();
+        if(ImGui::SliderFloat("Pitch", &pitch, AudioManager::MinPitch, AudioManager::MaxPitch, "%.2fx", 
+            ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp))
+            audioComponent->SetPitch(pitch); 
     }
 };

@@ -27,17 +27,24 @@ public:
     void OnUpdate(float deltaTime) override;
 
     // Audio Source Setters / Getters
-
     void SetAudioClip(gbe::AssetRef<AudioClip> audioClip) { m_audioClip = audioClip; }
     gbe::AssetRef<AudioClip> GetAudioClip() const { return m_audioClip; }
     gbe::AssetRef<AudioClip>& GetAudioClipRef() { return m_audioClip; }
     bool HasAudioClip() const { return !m_audioClip.IsEmpty(); }
 
+    // Play/Stop audio
     void Play();
     void Stop();
 
+    // Source Settings Setters / Getters
     void SetVolume(float soundVolume);
     float GetVolume() const { return m_soundVolume; }
+
+    void SetLoop(bool soundLoop);
+    bool GetLoop() const { return m_soundLoop; }
+
+    void SetPitch(float soundPitch);
+    float GetPitch() const { return m_soundPitch; }
 
 private:
     gbe::AssetRef<AudioClip> m_audioClip;
@@ -49,6 +56,12 @@ private:
 
     float m_soundVolume = 100.0f;
     GBE_SERIALIZE_FIELD(m_soundVolume);
+
+    bool m_soundLoop = false;
+    GBE_SERIALIZE_FIELD(m_soundLoop);
+
+    float m_soundPitch = 1.0f;
+    GBE_SERIALIZE_FIELD(m_soundPitch);
 
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioSourceComponent, ComponentBase);
 };

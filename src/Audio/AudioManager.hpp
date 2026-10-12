@@ -26,13 +26,20 @@ public:
     void StartClip(uint64_t soundID);
     void StopClip(uint64_t soundID);
 
-    // Set sound position
+    // Set audio source position
     void SetSoundPosition(uint64_t soundID, glm::vec3 position);
 
-    // Set sound volume
-    void SetSoundVolume(uint64_t soundID, float volume);
+    // Audio source settings
+    static constexpr float MinVolume = 0.0f;
+    static constexpr float MaxVolume = 100.0f;
+    static constexpr float MinPitch = 0.5f;
+    static constexpr float MaxPitch = 2.0f;
 
-    // Set listener position and direction
+    void SetSoundVolume(uint64_t soundID, float volume);
+    void SetSoundLoop(uint64_t soundID, bool loop);
+    void SetSoundPitch(uint64_t soundID, float pitch);
+
+    // Set audio listener position and direction
     void SetListenerPosition(glm::vec3 position);
     void SetListenerDirection(glm::vec3 direction);
 

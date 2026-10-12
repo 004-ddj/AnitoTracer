@@ -124,11 +124,38 @@ void AudioManager::SetSoundVolume(uint64_t soundID, float volume) {
         return;
     }
 
-    float minVolume = 0.0f;
-    float maxVolume = 1.0f;
-
     // Set sound volume; volume is expressed in percentage of 0 to 100
-    ma_sound_set_volume(it->second.get(), std::clamp(volume / 100.0f, minVolume, maxVolume));
+    ma_sound_set_volume(it->second.get(), std::clamp(volume, MinVolume, MaxVolume) / 100);
+}
+
+void AudioManager::SetSoundLoop(uint64_t soundID, bool loop) {
+    if (!m_AudioEngineInitialized) {
+        std::cerr << "Failed to set sound looping: audio engine not initialized." << std::endl;
+        return;
+    }
+
+    auto it = m_PlayingSounds.find(soundID);
+    if (it == m_PlayingSounds.end()) {  
+        std::cerr << "Audio not found: set sound looping failed. ID: " << soundID << std::endl;
+        return;
+    }
+
+    ma_sound_set_looping(it->second.get(), loop);
+}
+
+void AudioManager::SetSoundPitch(uint64_t soundID, float pitch) {
+    if (!m_AudioEngineInitialized) {
+        std::cerr << "Failed to set sound pitch: audio engine not initialized." << std::endl;
+        return;
+    }
+
+    auto it = m_PlayingSounds.find(soundID);
+    if (it == m_PlayingSounds.end()) {  
+        std::cerr << "Audio not found: set sound pitch failed. ID: " << soundID << std::endl;
+        return;
+    }
+
+    ma_sound_set_pitch(it->second.get(), std::clamp(pitch, MinPitch, MaxPitch));
 }
 
 void AudioManager::SetListenerPosition(glm::vec3 position) {

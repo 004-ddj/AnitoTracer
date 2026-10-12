@@ -30,6 +30,8 @@ void AudioSourceComponent::Play() {
     if (m_soundID == 0) return;
     
     AudioManager::GetInstance().SetSoundVolume(m_soundID, m_soundVolume);
+    AudioManager::GetInstance().SetSoundLoop(m_soundID, m_soundLoop);
+    AudioManager::GetInstance().SetSoundPitch(m_soundID, m_soundPitch);
     UpdateSoundPosition();
     AudioManager::GetInstance().StartClip(m_soundID);
 }
@@ -43,4 +45,14 @@ void AudioSourceComponent::Stop() {
 void AudioSourceComponent::SetVolume(float soundVolume) {
     m_soundVolume = soundVolume;
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundVolume(m_soundID, m_soundVolume);
+}
+
+void AudioSourceComponent::SetLoop(bool soundLoop) {
+    m_soundLoop = soundLoop;
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundLoop(m_soundID, m_soundLoop);
+}
+
+void AudioSourceComponent::SetPitch(float soundPitch) {
+    m_soundPitch = soundPitch;
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundPitch(m_soundID, m_soundPitch);
 }
