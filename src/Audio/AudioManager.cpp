@@ -1,5 +1,24 @@
 #include "AudioManager.hpp"
 
+bool AudioManager::EngineReady(std::string_view action) const {
+    if (!m_AudioEngineInitialized) 
+        std::cerr << action << " failed: audio engine not initialized." << std::endl;
+
+    return m_AudioEngineInitialized;
+}
+
+ma_sound* AudioManager::FindSound(uint64_t soundID, std::string_view action) {
+    if (!EngineReady(action)) return nullptr;
+
+    auto it = m_PlayingSounds.find(soundID);
+    if (it == m_PlayingSounds.end()) {
+        std::cerr << action << " failed: audio source not found. ID: " << soundID << std::endl;
+        return nullptr;
+    }
+
+    return it->second.get();
+}
+
 AudioClip* AudioManager::LoadClip(const std::string& filepath) {
     // Check & return cache
     auto it = m_AudioCache.find(filepath);
@@ -26,13 +45,10 @@ void AudioManager::AudioSoundDeleter::operator()(ma_sound* sound) const {
 }
 
 uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to create clip: audio engine not initialized." << std::endl;
-        return 0;
-    }
+    if (!EngineReady("Create clip")) return 0;
 
     if (!audioClip) {
-        std::cerr << "No audio found." << std::endl;
+        std::cerr << "Audio clip not found." << std::endl;
         return 0;
     }
 
@@ -47,7 +63,7 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
 
     // Check if init succeeded
     if (soundResult != MA_SUCCESS){
-        std::cerr << "Failed to load sound." << std::endl;
+        std::cerr << "Failed to initialize sound." << std::endl;
         delete newSound;
         return 0;
     }
@@ -60,109 +76,55 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
 }
 
 void AudioManager::StartClip(uint64_t soundID) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to start clip: audio engine not initialized." << std::endl;
-        return;
-    }
-    
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {
-        std::cerr << "Audio not found: start clip failed. ID: " << soundID << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Start clip");
+    if (!sound) return;
 
-    ma_sound_start(it->second.get());
+    // Start playback
+    ma_sound_start(sound);
 }
 
 void AudioManager::StopClip (uint64_t soundID) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to stop clip: audio engine not initialized." << std::endl;
-        return;
-    }
-    
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {
-        std::cerr << "Audio not found: stop clip failed. ID: " << soundID << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Stop clip");
+    if (!sound) return;
 
-    // Stop playback without destroying sound
-    ma_sound_stop(it->second.get());
-    m_PlayingSounds.erase(it);
-}
-
-glm::vec3 AudioManager::ConvertHandedness(const glm::vec3& v) {
-    return glm::vec3(v.x, v.y, -v.z);
+    // Stop playback then remove & destroy sound
+    ma_sound_stop(sound);
+    m_PlayingSounds.erase(soundID);
 }
 
 void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set sound position: audio engine not initialized." << std::endl;
-        return;
-    }
-
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {
-        std::cerr << "Audio not found: set sound position failed. ID: " << soundID << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Set sound position");
+    if (!sound) return;
 
     // Set sound position
     glm::vec3 p = ConvertHandedness(position);
-    ma_sound_set_position(it->second.get(), p.x, p.y, p.z);
+    ma_sound_set_position(sound, p.x, p.y, p.z);
 }
 
 void AudioManager::SetSoundVolume(uint64_t soundID, float volume) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set sound volume: audio engine not initialized." << std::endl;
-        return;
-    }
-
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {  
-        std::cerr << "Audio not found: set sound volume failed. ID: " << soundID << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Set sound volume");
+    if (!sound) return;
 
     // Set sound volume; volume is expressed in percentage of 0 to 100
-    ma_sound_set_volume(it->second.get(), std::clamp(volume, MinVolume, MaxVolume) / 100);
+    ma_sound_set_volume(sound, std::clamp(volume, MinVolume, MaxVolume) / 100);
 }
 
 void AudioManager::SetSoundLoop(uint64_t soundID, bool loop) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set sound looping: audio engine not initialized." << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Set sound loop");
+    if (!sound) return;
 
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {  
-        std::cerr << "Audio not found: set sound looping failed. ID: " << soundID << std::endl;
-        return;
-    }
-
-    ma_sound_set_looping(it->second.get(), loop);
+    ma_sound_set_looping(sound, loop);
 }
 
 void AudioManager::SetSoundPitch(uint64_t soundID, float pitch) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set sound pitch: audio engine not initialized." << std::endl;
-        return;
-    }
+    ma_sound* sound = FindSound(soundID, "Set sound pitch");
+    if (!sound) return;
 
-    auto it = m_PlayingSounds.find(soundID);
-    if (it == m_PlayingSounds.end()) {  
-        std::cerr << "Audio not found: set sound pitch failed. ID: " << soundID << std::endl;
-        return;
-    }
-
-    ma_sound_set_pitch(it->second.get(), std::clamp(pitch, MinPitch, MaxPitch));
+    ma_sound_set_pitch(sound, std::clamp(pitch, MinPitch, MaxPitch));
 }
 
 void AudioManager::SetListenerPosition(glm::vec3 position) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set listener position: audio engine not initialized." << std::endl;
-        return;
-    }
+    if (!EngineReady("Set listener position")) return;
 
     // Set engine position
     glm::vec3 p = ConvertHandedness(position);
@@ -170,10 +132,7 @@ void AudioManager::SetListenerPosition(glm::vec3 position) {
 }
 
 void AudioManager::SetListenerDirection(glm::vec3 direction) {
-    if (!m_AudioEngineInitialized) {
-        std::cerr << "Failed to set listener direction: audio engine not initialized." << std::endl;
-        return;
-    }
+    if (!EngineReady("Set listener direction")) return;
 
     // Set engine direction
     glm::vec3 d = ConvertHandedness(direction);

@@ -7,6 +7,7 @@
 
 #include <glm/glm.hpp>
 #include <algorithm>
+#include <string_view>
 
 class AudioManager : public gbe::AssetLoader<AudioClip> {
 public:
@@ -50,7 +51,7 @@ private:
     AudioManager() {
         ma_result result = ma_engine_init(nullptr, &m_AudioEngine);
         if (result != MA_SUCCESS) {
-            std::cerr << "Failed to load audio engine." << std::endl;
+            std::cerr << "Failed to initialize audio engine." << std::endl;
         } else {
             m_AudioEngineInitialized = true;
         }
@@ -70,8 +71,12 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
 
+    // Engine and Sound Check
+    bool EngineReady(std::string_view action) const;
+    ma_sound* FindSound(uint64_t soundID, std::string_view action);
+
     // Convert the engine's left-handed space to miniaudio's right-handed space
-    static glm::vec3 ConvertHandedness (const glm::vec3& v);
+    static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }
 
     void ClearClips();
 };
