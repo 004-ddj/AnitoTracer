@@ -7,6 +7,10 @@ void AudioSourceComponent::OnUpdate(float deltaTime) {
     UpdateSoundPosition();
 }
 
+void AudioSourceComponent::OnStart() {
+    if (m_soundPlayOnAwake) Play();
+}
+
 void AudioSourceComponent::UpdateSoundPosition() {
     // Get Transform from component's owner
     HierarchyObject* owner = GetOwner().GetPtr();
@@ -32,6 +36,8 @@ void AudioSourceComponent::Play() {
     AudioManager::GetInstance().SetSoundVolume(m_soundID, m_soundVolume);
     AudioManager::GetInstance().SetSoundLoop(m_soundID, m_soundLoop);
     AudioManager::GetInstance().SetSoundPitch(m_soundID, m_soundPitch);
+    AudioManager::GetInstance().SetSoundSpatialized(m_soundID, m_soundSpatialized);
+    AudioManager::GetInstance().SetSoundDistance(m_soundID, m_soundMinDistance, m_soundMaxDistance);
     UpdateSoundPosition();
     AudioManager::GetInstance().StartClip(m_soundID);
 }
@@ -55,4 +61,15 @@ void AudioSourceComponent::SetLoop(bool soundLoop) {
 void AudioSourceComponent::SetPitch(float soundPitch) {
     m_soundPitch = soundPitch;
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundPitch(m_soundID, m_soundPitch);
+}
+
+void AudioSourceComponent::SetSpatialized(bool soundSpatialized) {
+    m_soundSpatialized = soundSpatialized;
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundSpatialized(m_soundID, m_soundSpatialized);
+}
+
+void AudioSourceComponent::SetDistance(float soundMinDistance, float soundMaxDistance) {
+    m_soundMinDistance = soundMinDistance;
+    m_soundMaxDistance = soundMaxDistance;
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistance(m_soundID, m_soundMinDistance, m_soundMaxDistance);
 }

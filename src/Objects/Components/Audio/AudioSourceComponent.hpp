@@ -25,6 +25,7 @@ public:
     AudioSourceComponent& operator=(AudioSourceComponent&&) = default;
 
     void OnUpdate(float deltaTime) override;
+    void OnStart() override;
 
     // Audio Source Setters / Getters
     void SetAudioClip(gbe::AssetRef<AudioClip> audioClip) { m_audioClip = audioClip; }
@@ -46,6 +47,16 @@ public:
     void SetPitch(float soundPitch);
     float GetPitch() const { return m_soundPitch; }
 
+    void SetSpatialized(bool soundSpatialized);
+    bool GetSpatialized() const { return m_soundSpatialized; }
+
+    void SetDistance(float soundMinDistance, float soundMaxDistance);
+    float GetMinDistance() const { return m_soundMinDistance; }
+    float GetMaxDistance() const { return m_soundMaxDistance; }
+
+    void SetPlayOnAwake(bool soundPlayOnAwake) { m_soundPlayOnAwake = soundPlayOnAwake; }
+    bool GetPlayOnAwake() const { return m_soundPlayOnAwake; }
+
 private:
     gbe::AssetRef<AudioClip> m_audioClip;
     uint64_t m_soundID = 0;
@@ -62,6 +73,17 @@ private:
 
     float m_soundPitch = 1.0f;
     GBE_SERIALIZE_FIELD(m_soundPitch);
+
+    bool m_soundSpatialized = true;
+    GBE_SERIALIZE_FIELD(m_soundSpatialized);
+
+    float m_soundMinDistance = 1.0f;
+    float m_soundMaxDistance = 20.0f;
+    GBE_SERIALIZE_FIELD(m_soundMinDistance);
+    GBE_SERIALIZE_FIELD(m_soundMaxDistance);
+
+    bool m_soundPlayOnAwake = false;
+    GBE_SERIALIZE_FIELD(m_soundPlayOnAwake);
 
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioSourceComponent, ComponentBase);
 };
