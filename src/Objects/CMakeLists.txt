@@ -56,6 +56,11 @@ set(${CUR_TARGET_NAME}_src
 	Components/Global/TeleportMainCamera.cpp
 	Components/Global/TeleportMainCamera.hpp
 
+	Components/Audio/AudioSourceComponent.hpp
+	Components/Audio/AudioSourceComponent.cpp
+	Components/Audio/AudioListenerComponent.hpp
+	Components/Audio/AudioListenerComponent.cpp
+
 	HierarchyObject.hpp
 	HierarchyObject.cpp
 
@@ -83,6 +88,7 @@ target_link_libraries(${CUR_TARGET_NAME}
 	anito::asset
 	anito::common
 	anito::event
+	anito::audio
 )
 
 #PRIVATE

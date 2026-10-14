@@ -10,6 +10,7 @@
     {
       "name": "joltphysics",
       "features": [ "debugrenderer" ]
-    }
+    },
+    "miniaudio"
   ]
 }
