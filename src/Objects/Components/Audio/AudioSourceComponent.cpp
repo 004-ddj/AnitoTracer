@@ -73,3 +73,6 @@ void AudioSourceComponent::SetDistance(float soundMinDistance, float soundMaxDis
     m_soundMaxDistance = soundMaxDistance;
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistance(m_soundID, m_soundMinDistance, m_soundMaxDistance);
 }
+
+GBE_REGISTER_METHOD(AudioSourceComponent, Play);
+GBE_REGISTER_METHOD(AudioSourceComponent, Stop);

@@ -6,6 +6,7 @@
 #include "Types/UpdateTrigger.hpp"
 #include "HierarchyObject.hpp"
 #include "AudioClip.hpp"
+#include "AssignableEvent/MethodRegistry.hpp"
 
 class AudioSourceComponent : public ComponentBase, public gbe::ITrigger<UpdateTrigger> {
 public:
