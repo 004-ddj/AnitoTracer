@@ -448,7 +448,7 @@ void AnitoTracer_App::Render()
         editorRenderData.Models = renderData.Models;
         editorRenderData.Lights = renderData.Lights;
 
-        if (UserSettings::GetInstance().GetShowPhysicsDebug()) {
+        if (ProjectLoader::GetProjectSettings().debug.show_physics_collider_wireframes) {
             editorRenderData.DebugLines = PhysicsEngine::GetInstance().Get().GetDebugLines();
         }
 
