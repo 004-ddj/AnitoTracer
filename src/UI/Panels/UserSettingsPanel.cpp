@@ -71,6 +71,17 @@ namespace Diligent {
                 ImGui::Checkbox("Enable MSAA (4x)", &UserSettings::GetInstance().GetEnableMSAA());
             }
 
+            if (ImGui::CollapsingHeader("Physics Settings", ImGuiTreeNodeFlags_DefaultOpen))
+            {
+                if (ImGui::Checkbox("Enable Gravity", &projectSettings.physics.gravity_enabled)) {
+                    saveProjectSettings();
+                }
+                ImGui::BeginDisabled(!projectSettings.physics.gravity_enabled);
+                ImGui::DragFloat3("Gravity", projectSettings.physics.gravity.data(), 0.1f);
+                if (ImGui::IsItemDeactivatedAfterEdit()) saveProjectSettings();
+                ImGui::EndDisabled();
+            }
+
             if (ImGui::CollapsingHeader("Debug Settings", ImGuiTreeNodeFlags_DefaultOpen))
             {
                 if (ImGui::Checkbox("Show Physics Collider Wireframes", &projectSettings.debug.show_physics_collider_wireframes)) {

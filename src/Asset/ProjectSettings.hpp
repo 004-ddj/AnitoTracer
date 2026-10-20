@@ -14,8 +14,15 @@ struct ProjectDebugSettings
     bool show_physics_collider_wireframes = false;
 };
 
+struct ProjectPhysicsSettings
+{
+    bool gravity_enabled = true;
+    std::array<float, 3> gravity{0.0f, -9.81f, 0.0f};
+};
+
 struct ProjectSettings
 {
     ProjectLightingSettings lighting;
     ProjectDebugSettings debug;
+    ProjectPhysicsSettings physics;
 };
