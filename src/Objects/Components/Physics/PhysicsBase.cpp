@@ -36,8 +36,12 @@ void PhysicsBase::Teleport(const glm::vec3& position, const glm::quat& rotation)
 		if (Transform* transform = owner->GetTransform()) {
 			transform->SetWorldPosition(position);
 			transform->SetWorldRotation(rotation);
+			transform->SyncChildrenPhysics();
 		}
 	}
+
+	// Collider sizes derive from the world scale, which may have changed with this or an ancestor transform.
+	RebuildShapes();
 }
 
 void PhysicsBase::RegisterCollider(Collider* collider) {
