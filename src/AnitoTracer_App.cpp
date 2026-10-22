@@ -529,12 +529,14 @@ void AnitoTracer_App::HandleRenderEndEvent(const gbe::EventArgs *)
 void AnitoTracer_App::HandlePlay(const gbe::EventArgs *args)
 {
     ProjectLoader::QuickSave(); // Do a quicksave first to not lose scene data.
+    std::cout << "[App] HandlePlay: entering play mode" << std::endl;
     AppState::isPlaying = true;
     GUIManager::GetInstance().RequestGameViewportFocus();
 }
 
 void AnitoTracer_App::HandleStopPlay(const gbe::EventArgs *args)
 {
+    std::cout << "[App] HandleStopPlay: leaving play mode" << std::endl;
     AppState::isPlaying = false;
 
     // Reload the scene from disk to discard any changes made during play.

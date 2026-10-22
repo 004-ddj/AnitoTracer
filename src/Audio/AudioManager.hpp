@@ -8,6 +8,7 @@
 #include <glm/glm.hpp>
 #include <algorithm>
 #include <string_view>
+#include <unordered_set>
 
 class AudioManager : public gbe::AssetLoader<AudioClip> {
 public:
@@ -27,6 +28,12 @@ public:
     void StartClip(uint64_t soundID);
     void StopClip(uint64_t soundID);
 
+    // True if the sound still exists in the manager (silent check)
+    bool IsValidClip(uint64_t soundID) const { return m_PlayingSounds.find(soundID) != m_PlayingSounds.end(); }
+
+    // Releases ownership; the manager frees the sound once it finishes playing
+    void DetachClip(uint64_t soundID);
+
     // Set audio source position
     void SetSoundPosition(uint64_t soundID, glm::vec3 position);
 
@@ -39,6 +46,7 @@ public:
     void SetSoundVolume(uint64_t soundID, float volume);
     void SetSoundLoop(uint64_t soundID, bool loop);
     void SetSoundPitch(uint64_t soundID, float pitch);
+    void SetSoundDistances(uint64_t soundID, float minDistance, float maxDistance);
 
     // Set audio listener position and direction
     void SetListenerPosition(glm::vec3 position);
@@ -68,6 +76,7 @@ private:
     bool m_AudioEngineInitialized = false;
     uint64_t m_NextSoundID = 1;
     std::unordered_map<uint64_t, std::unique_ptr<ma_sound, AudioSoundDeleter>> m_PlayingSounds;
+    std::unordered_set<uint64_t> m_DetachedSounds;
 
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
 
