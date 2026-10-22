@@ -34,5 +34,13 @@ public:
         if(ImGui::SliderFloat("Pitch", &pitch, AudioManager::MinPitch, AudioManager::MaxPitch, "%.2fx", 
             ImGuiSliderFlags_Logarithmic | ImGuiSliderFlags_AlwaysClamp))
             audioComponent->SetPitch(pitch); 
+
+        float minDistance = audioComponent->GetMinDistance();
+        if (ImGui::DragFloat("Min Distance", &minDistance, 0.5f, 0.0f, 10000.0f))
+            audioComponent->SetMinDistance(minDistance);
+
+        float maxDistance = audioComponent->GetMaxDistance();
+        if (ImGui::DragFloat("Max Distance", &maxDistance, 0.5f, 0.0f, 10000.0f))
+            audioComponent->SetMaxDistance(maxDistance);
     }
 };

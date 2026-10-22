@@ -36,6 +36,9 @@ public:
     void Play();
     void Stop();
 
+    // Plays the clip, then releases ownership so it keeps playing after this component is destroyed
+    void PlayDetached();
+
     // Source Settings Setters / Getters
     void SetVolume(float soundVolume);
     float GetVolume() const { return m_soundVolume; }
@@ -45,6 +48,12 @@ public:
 
     void SetPitch(float soundPitch);
     float GetPitch() const { return m_soundPitch; }
+
+    void SetMinDistance(float minDistance);
+    float GetMinDistance() const { return m_minDistance; }
+
+    void SetMaxDistance(float maxDistance);
+    float GetMaxDistance() const { return m_maxDistance; }
 
 private:
     gbe::AssetRef<AudioClip> m_audioClip;
@@ -62,6 +71,12 @@ private:
 
     float m_soundPitch = 1.0f;
     GBE_SERIALIZE_FIELD(m_soundPitch);
+
+    float m_minDistance = 10.0f;
+    GBE_SERIALIZE_FIELD(m_minDistance);
+
+    float m_maxDistance = 100.0f;
+    GBE_SERIALIZE_FIELD(m_maxDistance);
 
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioSourceComponent, ComponentBase);
 };
