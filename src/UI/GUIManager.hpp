@@ -21,6 +21,7 @@
 #include "Panels/InspectorPanel/Components/PointLightUI.hpp"
 #include "Panels/InspectorPanel/Components/ModelUI.hpp"
 #include "Panels/InspectorPanel/Components/AudioSourceUI.hpp"
+#include "Panels/InspectorPanel/Components/ParticleSystemUI.hpp"
 
 #include "Panels/ViewportPanel/EditorPanel.hpp"
 #include "Panels/ViewportPanel/GamePanel.hpp"
