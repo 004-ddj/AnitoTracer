@@ -52,8 +52,26 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
         return 0;
     }
 
+    // Free detached sounds that finished playing; owned sounds are left to their owners
+    for (auto it = m_DetachedSounds.begin(); it != m_DetachedSounds.end();) {
+        auto sound = m_PlayingSounds.find(*it);
+        if (sound == m_PlayingSounds.end()) {
+            it = m_DetachedSounds.erase(it);
+        } else if (ma_sound_at_end(sound->second.get())) {
+            m_PlayingSounds.erase(sound);
+            it = m_DetachedSounds.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
     // Get the file path from audioClip
     std::filesystem::path path = audioClip->GetPath();
+    std::cout << "[Audio] CreateClip path='" << path.string() << "' exists=" << std::filesystem::exists(path)
+        << " cwd='" << std::filesystem::current_path().string() << "' liveSounds=" << m_PlayingSounds.size()
+        << " detached=" << m_DetachedSounds.size()
+        << " engineVolume=" << ma_engine_get_volume(&m_AudioEngine)
+        << " listeners=" << ma_engine_get_listener_count(&m_AudioEngine) << std::endl;
 
     // Alloc + init new ma_sound from that path
     ma_sound* newSound = new ma_sound;
@@ -63,7 +81,7 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
 
     // Check if init succeeded
     if (soundResult != MA_SUCCESS){
-        std::cerr << "Failed to initialize sound." << std::endl;
+        std::cerr << "Failed to initialize sound. ma_result=" << soundResult << std::endl;
         delete newSound;
         return 0;
     }
@@ -80,7 +98,15 @@ void AudioManager::StartClip(uint64_t soundID) {
     if (!sound) return;
 
     // Start playback
-    ma_sound_start(sound);
+    ma_result result = ma_sound_start(sound);
+    ma_vec3f pos = ma_sound_get_position(sound);
+    ma_vec3f lpos = ma_engine_listener_get_position(&m_AudioEngine, 0);
+    std::cout << "[Audio] StartClip id=" << soundID << " result=" << result
+        << " isPlaying=" << ma_sound_is_playing(sound)
+        << " volume=" << ma_sound_get_volume(sound)
+        << " spatialized=" << ma_sound_is_spatialization_enabled(sound)
+        << " soundPos=(" << pos.x << "," << pos.y << "," << pos.z << ")"
+        << " listenerPos=(" << lpos.x << "," << lpos.y << "," << lpos.z << ")" << std::endl;
 }
 
 void AudioManager::StopClip (uint64_t soundID) {
@@ -88,8 +114,13 @@ void AudioManager::StopClip (uint64_t soundID) {
     if (!sound) return;
 
     // Stop playback then remove & destroy sound
+    std::cout << "[Audio] StopClip id=" << soundID << std::endl;
     ma_sound_stop(sound);
     m_PlayingSounds.erase(soundID);
+}
+
+void AudioManager::DetachClip(uint64_t soundID) {
+    if (IsValidClip(soundID)) m_DetachedSounds.insert(soundID);
 }
 
 void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
@@ -163,5 +194,7 @@ void AudioManager::ClearCache() {
 }
 
 void AudioManager::ClearClips() {
+    std::cout << "[Audio] ClearClips: dropping " << m_PlayingSounds.size() << " sounds" << std::endl;
+    m_DetachedSounds.clear();
     m_PlayingSounds.clear();
 }

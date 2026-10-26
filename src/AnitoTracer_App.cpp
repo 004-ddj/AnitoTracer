@@ -415,6 +415,16 @@ void AnitoTracer_App::Update()
     if (AppState::isPlaying){
         HierarchyManager::GetInstance().DispatchEvent<UpdateTrigger>(0.016f); //test delta frame
         HierarchyManager::GetInstance().DispatchEvent<OnGUI_Release>(deltaTime);
+        {
+            const auto& physicsSettings = ProjectLoader::GetProjectSettings().physics;
+            const glm::vec3 desiredGravity = physicsSettings.gravity_enabled
+                ? glm::vec3(physicsSettings.gravity[0], physicsSettings.gravity[1], physicsSettings.gravity[2])
+                : glm::vec3(0.0f);
+            IPhysicsEngine& physics = PhysicsEngine::GetInstance().Get();
+            if (physics.GetGravity() != desiredGravity) {
+                physics.SetGravity(desiredGravity);
+            }
+        }
         PhysicsEngine::GetInstance().Get().Step(deltaTime);
         HierarchyManager::GetInstance().DispatchEvent<FixedUpdateTrigger>(deltaTime);
     }
@@ -448,7 +458,7 @@ void AnitoTracer_App::Render()
         editorRenderData.Models = renderData.Models;
         editorRenderData.Lights = renderData.Lights;
 
-        if (UserSettings::GetInstance().GetShowPhysicsDebug()) {
+        if (ProjectLoader::GetProjectSettings().debug.show_physics_collider_wireframes) {
             editorRenderData.DebugLines = PhysicsEngine::GetInstance().Get().GetDebugLines();
         }
 
@@ -492,7 +502,8 @@ void AnitoTracer_App::HandleObjectPicking(const SwapChainDesc& SCDesc, const Ren
             HierarchyObject* selectedObj = HierarchyObject::getById(pickedID);
             if (selectedObj) {
                 std::cout << "Clicked on Model owned by: " << selectedObj->GetName() << std::endl;
-                gui.SetSelectedObject(selectedObj);
+                if (ImGui::GetIO().KeyCtrl) gui.ToggleSelectedObject(selectedObj);
+                else gui.SetSelectedObject(selectedObj);
             }
         }
     }
@@ -518,12 +529,14 @@ void AnitoTracer_App::HandleRenderEndEvent(const gbe::EventArgs *)
 void AnitoTracer_App::HandlePlay(const gbe::EventArgs *args)
 {
     ProjectLoader::QuickSave(); // Do a quicksave first to not lose scene data.
+    std::cout << "[App] HandlePlay: entering play mode" << std::endl;
     AppState::isPlaying = true;
     GUIManager::GetInstance().RequestGameViewportFocus();
 }
 
 void AnitoTracer_App::HandleStopPlay(const gbe::EventArgs *args)
 {
+    std::cout << "[App] HandleStopPlay: leaving play mode" << std::endl;
     AppState::isPlaying = false;
 
     // Reload the scene from disk to discard any changes made during play.

@@ -38,6 +38,9 @@ public:
     void Play();
     void Stop();
 
+    // Plays the clip, then releases ownership so it keeps playing after this component is destroyed
+    void PlayDetached();
+
     // Source Settings Setters / Getters
     void SetVolume(float soundVolume);
     float GetVolume() const { return m_soundVolume; }

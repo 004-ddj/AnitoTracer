@@ -4,6 +4,12 @@ void AudioSourceComponent::OnUpdate(float deltaTime) {
     if (m_soundID == 0) return;
     (void)deltaTime;
 
+    // The sound may have been released by the manager; drop the stale ID instead of spamming errors
+    if (!AudioManager::GetInstance().IsValidClip(m_soundID)) {
+        m_soundID = 0;
+        return;
+    }
+
     UpdateSoundPosition();
 }
 
@@ -27,9 +33,12 @@ void AudioSourceComponent::UpdateSoundPosition() {
 }
 
 void AudioSourceComponent::Play() {
+    std::cout << "[AudioSource] Play this=" << this << " hasClip=" << HasAudioClip()
+        << " clipPtr=" << (HasAudioClip() ? static_cast<void*>(m_audioClip.Get()) : nullptr)
+        << " oldSoundID=" << m_soundID << " volume=" << m_soundVolume
+        << " loop=" << m_soundLoop << " pitch=" << m_soundPitch << std::endl;
     if (!HasAudioClip()) return;
-    if (m_soundID != 0) AudioManager::GetInstance().StopClip(m_soundID);
-    
+    if (m_soundID != 0 && AudioManager::GetInstance().IsValidClip(m_soundID)) AudioManager::GetInstance().StopClip(m_soundID);
     m_soundID = AudioManager::GetInstance().CreateClip(m_audioClip.Get());
     if (m_soundID == 0) return;
     
@@ -40,6 +49,13 @@ void AudioSourceComponent::Play() {
     AudioManager::GetInstance().SetSoundDistance(m_soundID, m_soundMinDistance, m_soundMaxDistance);
     UpdateSoundPosition();
     AudioManager::GetInstance().StartClip(m_soundID);
+}
+
+void AudioSourceComponent::PlayDetached() {
+    if (m_soundLoop) return;
+    Play();
+    if (m_soundID != 0) AudioManager::GetInstance().DetachClip(m_soundID);
+    m_soundID = 0;
 }
 
 void AudioSourceComponent::Stop() {
@@ -56,6 +72,17 @@ void AudioSourceComponent::SetVolume(float soundVolume) {
 void AudioSourceComponent::SetLoop(bool soundLoop) {
     m_soundLoop = soundLoop;
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundLoop(m_soundID, m_soundLoop);
+}
+
+void AudioSourceComponent::SetMinDistance(float minDistance) {
+    m_minDistance = std::max(0.0f, minDistance);
+    if (m_maxDistance < m_minDistance) m_maxDistance = m_minDistance;
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistances(m_soundID, m_minDistance, m_maxDistance);
+}
+
+void AudioSourceComponent::SetMaxDistance(float maxDistance) {
+    m_maxDistance = std::max(maxDistance, m_minDistance);
+    if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistances(m_soundID, m_minDistance, m_maxDistance);
 }
 
 void AudioSourceComponent::SetPitch(float soundPitch) {
