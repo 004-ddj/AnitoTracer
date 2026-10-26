@@ -88,46 +88,6 @@ namespace Diligent {
                 ImGui::EndMenu();
             }
 
-            if (ImGui::BeginMenu("Assets"))
-            {
-                if (ImGui::MenuItem("Add Empty Object"))
-                {
-                    ObjectFactory::GetInstance().CreateRootObjectWithTransform("Empty Object");
-                }
-
-                if (ImGui::BeginMenu("Primmitives")) {
-                    if (ImGui::MenuItem("Box")) {
-                        ObjectFactory::GetInstance().CreateCubePrimitive("Box");
-                    }
-                    if (ImGui::MenuItem("Sphere")) {
-                        ObjectFactory::GetInstance().CreateSpherePrimitive("Sphere");
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::BeginMenu("Lights")) {
-                    if (ImGui::MenuItem("Direction")) {
-                        ObjectFactory::GetInstance().CreateDirectionalLightObject("Direction Light");
-                    }
-                    if (ImGui::MenuItem("Point")) {
-                        ObjectFactory::GetInstance().CreatePointLightObject("Point Light");
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if (ImGui::MenuItem("Load Model"))
-                {
-                    std::string filepath = FileDialog::OpenModelFile();
-
-                    if (!filepath.empty())
-                    {
-                        std::cout << "Successfully selected model: " << filepath << std::endl;
-                        ObjectFactory::GetInstance().CreateModelObject("Loaded Model", filepath);
-                    }
-                }
-                ImGui::EndMenu();
-            }
-
             if (ImGui::BeginMenu("Rendering"))
             {
                 bool rtSupported = RendererManager::GetInstance().IsRayTracingSupported();
