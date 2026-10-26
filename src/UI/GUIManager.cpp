@@ -15,6 +15,7 @@
 #include "../Objects/Components/EditorCamera.hpp"
 #include "../Objects/Components/GameCamera.hpp"
 #include <utility>
+#include <algorithm>
 
 #include "Theme.hpp"
 
@@ -69,6 +70,14 @@ void Diligent::GUIManager::NewFrame(Uint32 width, Uint32 height, SURFACE_TRANSFO
 
     // Prevent starting a frame with invalid dimensions
     if (width == 0 || height == 0) return;
+
+    if (!m_PendingLayout.empty())
+    {
+        const auto path = GetLayoutsDirectory() / (m_PendingLayout + ".ini");
+        m_PendingLayout.clear();
+        if (std::filesystem::exists(path))
+            ImGui::LoadIniSettingsFromDisk(path.string().c_str());
+    }
 
     m_pImGuiRenderer->NewFrame(width, height, transform);
     ImGuizmo::BeginFrame();
@@ -187,6 +196,32 @@ void Diligent::GUIManager::RegisterViewportPanels(std::function<ITextureView* ()
 {
     AddPanel(std::make_unique<GamePanel>("Game Camera", std::move(gameSrvGetter)));
     AddPanel(std::make_unique<EditorPanel>("Editor Camera", std::move(editorSrvGetter)));
+}
+
+std::vector<std::string> Diligent::GUIManager::GetAvailableLayouts() const
+{
+    std::vector<std::string> layouts;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(GetLayoutsDirectory(), ec))
+    {
+        if (entry.is_regular_file() && entry.path().extension() == ".ini")
+            layouts.push_back(entry.path().stem().string());
+    }
+    std::sort(layouts.begin(), layouts.end());
+    return layouts;
+}
+
+bool Diligent::GUIManager::SaveCurrentLayout(const std::string& name)
+{
+    // Reject anything that isn't a plain file name
+    if (name.empty() || name.find_first_of("\\/:*?\"<>|") != std::string::npos || name == "." || name == "..")
+        return false;
+
+    std::error_code ec;
+    std::filesystem::create_directories(GetLayoutsDirectory(), ec);
+    const auto path = GetLayoutsDirectory() / (name + ".ini");
+    ImGui::SaveIniSettingsToDisk(path.string().c_str());
+    return std::filesystem::exists(path);
 }
 
 Diligent::GUIManager::~GUIManager() = default;

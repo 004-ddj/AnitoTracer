@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <compare>
+#include <filesystem>
 
 #include "Panels/BasePanel.hpp" 
 #include "MenuBar.hpp"
@@ -70,6 +71,13 @@ namespace Diligent {
 
         void RegisterFileOpener(FileExplorerPanel::Opener opener);
 
+        // Window layouts (ImGui .ini files stored in Assets/Default Layouts)
+        static std::filesystem::path GetLayoutsDirectory() { return std::filesystem::path("Assets") / "Default Layouts"; }
+        std::vector<std::string> GetAvailableLayouts() const;
+        // Applied at the start of the next frame, never mid-frame
+        void RequestLoadLayout(const std::string& name) { m_PendingLayout = name; }
+        bool SaveCurrentLayout(const std::string& name);
+
         void RegisterViewportPanels(std::function<ITextureView* ()> gameSrvGetter, std::function<ITextureView* ()> editorSrvGetter);
         
         void SetEditorViewportInfo(ImVec2 pos, ImVec2 size, bool hovered, bool focused) {
@@ -126,6 +134,8 @@ namespace Diligent {
 
         // The dedicated menu bar instance
         MenuBar m_MenuBar;
+
+        std::string m_PendingLayout;
 
         //Gizmo Drawer instance
         GizmoDrawer m_GizmoDrawer;
