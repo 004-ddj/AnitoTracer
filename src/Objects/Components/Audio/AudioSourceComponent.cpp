@@ -74,17 +74,6 @@ void AudioSourceComponent::SetLoop(bool soundLoop) {
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundLoop(m_soundID, m_soundLoop);
 }
 
-void AudioSourceComponent::SetMinDistance(float minDistance) {
-    m_minDistance = std::max(0.0f, minDistance);
-    if (m_maxDistance < m_minDistance) m_maxDistance = m_minDistance;
-    if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistances(m_soundID, m_minDistance, m_maxDistance);
-}
-
-void AudioSourceComponent::SetMaxDistance(float maxDistance) {
-    m_maxDistance = std::max(maxDistance, m_minDistance);
-    if (m_soundID != 0) AudioManager::GetInstance().SetSoundDistances(m_soundID, m_minDistance, m_maxDistance);
-}
-
 void AudioSourceComponent::SetPitch(float soundPitch) {
     m_soundPitch = soundPitch;
     if (m_soundID != 0) AudioManager::GetInstance().SetSoundPitch(m_soundID, m_soundPitch);
