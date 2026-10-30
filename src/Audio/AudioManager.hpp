@@ -45,6 +45,7 @@ public:
 
     void SetMasterGroupVolume(float volume);
     void SetAudioGroupVolume(AudioGroupType groupType, float volume);
+    void ApplyVolumes(float masterVolume, float bgmVolume, float sfxVolume);
 
     // Set audio source position
     void SetSoundPosition(uint64_t soundID, glm::vec3 position);
@@ -157,6 +158,7 @@ private:
     ma_sound* FindSound(uint64_t soundID, std::string_view action);
 
     ma_sound_group* GetGroup(AudioGroupType groupType);
+    ma_uint32 GetSoundFlag(AudioGroupType groupType);
 
     // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }
