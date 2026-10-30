@@ -55,11 +55,28 @@ void AudioManager::AudioSoundDeleter::operator()(ma_sound* sound) const {
     delete sound;
 }
 
-uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
+ma_sound_group* AudioManager::GetGroup(AudioGroupType groupType) {
+    switch (groupType) {
+        case AudioGroupType::BGM:
+            return &m_BgmGroup;
+        case AudioGroupType::SFX:
+            return &m_SfxGroup;
+    }
+    
+    return nullptr;
+}
+
+uint64_t AudioManager::CreateClip(AudioClip* audioClip, AudioGroupType groupType) {
     if (!GroupsReady("Create clip")) return 0;
 
     if (!audioClip) {
         std::cerr << "Audio clip not found." << std::endl;
+        return 0;
+    }
+
+    ma_sound_group* group = GetGroup(groupType);
+    if (!group) {
+        std::cerr << "Create clip failed: unknown audio group type." << std::endl;
         return 0;
     }
 
@@ -81,6 +98,7 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
     std::cout << "[Audio] CreateClip path='" << path.string() << "' exists=" << std::filesystem::exists(path)
         << " cwd='" << std::filesystem::current_path().string() << "' liveSounds=" << m_PlayingSounds.size()
         << " detached=" << m_DetachedSounds.size()
+        << " group=" << (groupType == AudioGroupType::BGM ? "BGM" : groupType == AudioGroupType::SFX ? "SFX" : "Unknown")
         << " engineVolume=" << ma_engine_get_volume(&m_AudioEngine)
         << " listeners=" << ma_engine_get_listener_count(&m_AudioEngine) << std::endl;
 
@@ -88,7 +106,7 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip) {
     ma_sound* newSound = new ma_sound;
     ma_result soundResult;
 
-    soundResult = ma_sound_init_from_file(&m_AudioEngine, path.string().c_str(), 0, &m_MasterGroup, nullptr, newSound);
+    soundResult = ma_sound_init_from_file(&m_AudioEngine, path.string().c_str(), 0, group, nullptr, newSound);
 
     // Check if init succeeded
     if (soundResult != MA_SUCCESS){
@@ -143,23 +161,13 @@ void AudioManager::SetMasterGroupVolume(float volume) {
 void AudioManager::SetAudioGroupVolume(AudioGroupType groupType, float volume) {
     if (!GroupsReady("Set group volume")) return;
 
-    ma_sound_group* group = nullptr;
-
-    // Set group volume; volume is expressed in percentage of 0 to 100
-    switch (groupType) {
-        case AudioGroupType::BGM:
-            group = &m_BgmGroup;
-            break;
-        case AudioGroupType::SFX:
-            group = &m_SfxGroup;
-            break;
-    }
-
-    if (group == nullptr) {
+    ma_sound_group* group = GetGroup(groupType);
+    if (!group) {
         std::cerr << "Set group volume failed: unknown audio group type." << std::endl;
         return;
     }
 
+    // Set group volume; volume is expressed in percentage of 0 to 100
     ma_sound_group_set_volume(group, std::clamp(volume, MinVolume, MaxVolume) / 100);
 }
 

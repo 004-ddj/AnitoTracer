@@ -18,11 +18,16 @@ public:
         return instance;
     }
 
+    enum class AudioGroupType {
+        BGM = 0,
+        SFX = 1
+    };
+
     // Returns a pointer to the cached clip, or loads it if not present
     AudioClip* LoadClip(const std::string& filepath);
 
     // Create audio clip and assign sound ID
-    uint64_t CreateClip(AudioClip* audioClip);
+    uint64_t CreateClip(AudioClip* audioClip, AudioGroupType groupType = AudioGroupType::SFX);
 
     // Start or stop given clip
     void StartClip(uint64_t soundID);
@@ -37,11 +42,6 @@ public:
     // Set group volume
     static constexpr float MinVolume = 0.0f;
     static constexpr float MaxVolume = 100.0f;
-
-    enum class AudioGroupType {
-        BGM,
-        SFX
-    };
 
     void SetMasterGroupVolume(float volume);
     void SetAudioGroupVolume(AudioGroupType groupType, float volume);
@@ -98,6 +98,10 @@ private:
                 } else {
                     m_SfxGroupInitialized = true;
                 }
+
+                // For testing; remove once there is sliders for these (change float values for volume test)
+                // SetAudioGroupVolume(AudioGroupType::BGM, 75.0f);
+                // SetAudioGroupVolume(AudioGroupType::SFX, 10.0f);
             }
         }
     }
@@ -151,6 +155,8 @@ private:
     bool EngineReady(std::string_view action) const;
     bool GroupsReady(std::string_view action) const;
     ma_sound* FindSound(uint64_t soundID, std::string_view action);
+
+    ma_sound_group* GetGroup(AudioGroupType groupType);
 
     // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }
