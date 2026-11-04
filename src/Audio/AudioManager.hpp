@@ -33,6 +33,8 @@ public:
     void StartClip(uint64_t soundID);
     void StopClip(uint64_t soundID);
 
+    void CallSwitchMusic(AudioClip* newClip);
+
     // True if the sound still exists in the manager (silent check)
     bool IsValidClip(uint64_t soundID) const { return m_PlayingSounds.find(soundID) != m_PlayingSounds.end(); }
 
@@ -148,6 +150,9 @@ private:
     std::unordered_map<uint64_t, std::unique_ptr<ma_sound, AudioSoundDeleter>> m_PlayingSounds;
     std::unordered_set<uint64_t> m_DetachedSounds;
 
+    uint64_t m_CurrentSoundID = 0;
+    AudioClip* m_CurrentAudioClip = nullptr;
+
     std::unordered_map<std::string, std::unique_ptr<AudioClip>> m_AudioCache;
 
     // Engine, groups, & sound checks
@@ -160,6 +165,8 @@ private:
 
     // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }
+
+    void SwitchMusic(AudioClip* newClip);
 
     void ClearClips();
 };

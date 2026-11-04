@@ -177,6 +177,43 @@ void AudioManager::DetachClip(uint64_t soundID) {
     if (IsValidClip(soundID)) m_DetachedSounds.insert(soundID);
 }
 
+void AudioManager::SwitchMusic(AudioClip* newClip) {
+    if (!GroupsReady("Switch music")) return;
+
+    if (!newClip) {
+        std::cerr << "Audio clip not found." << std::endl;
+        return;
+    }
+
+    if (newClip == m_CurrentAudioClip && IsValidClip(m_CurrentSoundID)) return;
+
+    uint64_t id = CreateClip(newClip, AudioManager::AudioGroupType::BGM);
+    if (id == 0) return;
+
+    SetSoundLoop(id, true);
+    SetSoundSpatialized(id, GetDefaultSpatialization(AudioManager::AudioGroupType::BGM));
+    SetSoundVolume(id, MaxVolume);
+
+    ma_sound* newSound = FindSound(id, "Switch music");
+    if (!newSound) return;
+
+    ma_sound_set_fade_in_milliseconds(newSound, 0.0f, 1.0f, 2000);
+    ma_sound_start(newSound);
+
+    if (IsValidClip(m_CurrentSoundID)) {
+        ma_sound* oldSound = FindSound(m_CurrentSoundID, "Switch music");
+        ma_sound_stop_with_fade_in_milliseconds(oldSound, 2000);
+    }
+   
+    m_CurrentAudioClip = newClip;
+    m_CurrentSoundID = id;
+}  
+
+// temporary function for testing
+void AudioManager::CallSwitchMusic(AudioClip* newClip) {
+    SwitchMusic(newClip);
+}
+
 void AudioManager::SetMasterGroupVolume(float volume) {
     if (!GroupsReady("Set master volume")) return;
 
