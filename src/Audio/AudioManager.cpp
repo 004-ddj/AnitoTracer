@@ -117,6 +117,8 @@ uint64_t AudioManager::CreateClip(AudioClip* audioClip, AudioGroupType groupType
         }
     }
 
+    RemoveFadingSounds();
+
     // Get the file path from audioClip
     std::filesystem::path path = audioClip->GetPath();
     std::cout << "[Audio] CreateClip path='" << path.string() << "' exists=" << std::filesystem::exists(path)
@@ -177,7 +179,8 @@ void AudioManager::DetachClip(uint64_t soundID) {
     if (IsValidClip(soundID)) m_DetachedSounds.insert(soundID);
 }
 
-void AudioManager::SwitchMusic(AudioClip* newClip) {
+// fix this its a bit messy
+void AudioManager::SwitchMusic(AudioClip* newClip, uint64_t fadeLength) {
     if (!GroupsReady("Switch music")) return;
 
     if (!newClip) {
@@ -197,21 +200,64 @@ void AudioManager::SwitchMusic(AudioClip* newClip) {
     ma_sound* newSound = FindSound(id, "Switch music");
     if (!newSound) return;
 
-    ma_sound_set_fade_in_milliseconds(newSound, 0.0f, 1.0f, 2000);
+    ma_sound_set_fade_in_milliseconds(newSound, 0.0f, 1.0f, fadeLength);
     ma_sound_start(newSound);
 
     if (IsValidClip(m_CurrentSoundID)) {
         ma_sound* oldSound = FindSound(m_CurrentSoundID, "Switch music");
-        ma_sound_stop_with_fade_in_milliseconds(oldSound, 2000);
+        ma_sound_stop_with_fade_in_milliseconds(oldSound, fadeLength);
+        m_FadingOutSounds.emplace(m_CurrentSoundID, ma_engine_get_time_in_milliseconds(&m_AudioEngine) + fadeLength + 100);
     }
    
     m_CurrentAudioClip = newClip;
     m_CurrentSoundID = id;
-}  
+}
 
 // temporary function for testing
-void AudioManager::CallSwitchMusic(AudioClip* newClip) {
-    SwitchMusic(newClip);
+void AudioManager::CallSwitchMusic(AudioClip* newClip, uint64_t fadeLength) {
+    SwitchMusic(newClip, fadeLength);
+}
+
+void AudioManager::PushMusic(uint64_t ownerID, AudioClip* ownerClip, uint64_t fadeLength) {
+    auto it = std::find_if(m_MusicStack.begin(), m_MusicStack.end(), [ownerID](const MusicEntry& m) {
+        return m.ownerID == ownerID;
+    });
+
+    if (it != m_MusicStack.end()) 
+        m_MusicStack.erase(it);
+
+    if (!ownerClip) {
+        std::cerr << "Audio clip not found." << std::endl;
+        return;
+    } else {
+        m_MusicStack.push_back({ownerID, ownerClip, fadeLength});
+        SwitchMusic(ownerClip, fadeLength); 
+    }
+}
+
+void AudioManager::PopMusic(uint64_t ownerID, uint64_t fadeLength) {
+    auto it = std::find_if(m_MusicStack.begin(), m_MusicStack.end(), [ownerID](const MusicEntry& m) {
+        return m.ownerID == ownerID;
+    });
+
+    if (it != m_MusicStack.end()) {
+        m_MusicStack.erase(it);
+
+        if (!m_MusicStack.empty()) {
+            SwitchMusic(m_MusicStack.back().ownerClip, m_MusicStack.back().fadeLength);
+        } else {
+            if (IsValidClip(m_CurrentSoundID)) {
+                ma_sound* sound = FindSound(m_CurrentSoundID, "Pop music");
+                if (sound) {
+                    ma_sound_stop_with_fade_in_milliseconds(sound, fadeLength);
+                    m_FadingOutSounds.emplace(m_CurrentSoundID, ma_engine_get_time_in_milliseconds(&m_AudioEngine) + fadeLength + 100);
+                }
+            }
+
+            m_CurrentAudioClip = nullptr;
+            m_CurrentSoundID = 0;
+        }
+    }
 }
 
 void AudioManager::SetMasterGroupVolume(float volume) {
@@ -304,6 +350,22 @@ void AudioManager::SetListenerDirection(glm::vec3 direction) {
     ma_engine_listener_set_direction(&m_AudioEngine, 0, d.x, d.y, d.z);
 }
 
+void AudioManager::RemoveFadingSounds() {
+    uint64_t currentTime = ma_engine_get_time_in_milliseconds(&m_AudioEngine);
+
+    for (auto it = m_FadingOutSounds.begin(); it != m_FadingOutSounds.end();) {
+        auto sound = m_PlayingSounds.find(it->first);
+        if (sound == m_PlayingSounds.end()) {
+            it = m_FadingOutSounds.erase(it);
+        } else if (currentTime >= it->second) {
+            m_PlayingSounds.erase(sound);
+            it = m_FadingOutSounds.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 void AudioManager::ClearCache() {
     m_AudioCache.clear();
     ClearClips();
@@ -311,6 +373,13 @@ void AudioManager::ClearCache() {
 
 void AudioManager::ClearClips() {
     std::cout << "[Audio] ClearClips: dropping " << m_PlayingSounds.size() << " sounds" << std::endl;
+
+    m_FadingOutSounds.clear();
+    m_CurrentSoundID = 0;
+    m_CurrentAudioClip = nullptr;
+
+    m_MusicStack.clear();
+
     m_DetachedSounds.clear();
     m_PlayingSounds.clear();
 }

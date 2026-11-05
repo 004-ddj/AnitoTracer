@@ -23,6 +23,19 @@ public:
         if (ImGui::Button("Stop"))
             audioComponent->Stop();
 
+        // test
+        if (ImGui::Button("Switch Music"))
+            AudioManager::GetInstance().CallSwitchMusic(clipReference.Get());
+
+        uint64_t ownerID = static_cast<uint64_t>(std::hash<gbe::GUID>{}(audioComponent->GetGUID()));
+        uint64_t fadeLength = 2000;
+
+        if (ImGui::Button("Push"))
+            AudioManager::GetInstance().PushMusic(ownerID, clipReference.Get(), fadeLength);
+
+        if (ImGui::Button("Pop"))
+            AudioManager::GetInstance().PopMusic(ownerID, fadeLength);
+
         AudioManager::AudioGroupType groupType = audioComponent->GetSoundGroup();
         if (gbe::PropertyDrawer<AudioManager::AudioGroupType>::Draw("Source Type", groupType))
             audioComponent->SetSoundGroup(static_cast<AudioManager::AudioGroupType>(groupType));
