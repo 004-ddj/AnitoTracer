@@ -41,6 +41,8 @@ set(${CUR_TARGET_NAME}_src
 	Components/Audio/AudioSourceComponent.cpp
 	Components/Audio/AudioListenerComponent.hpp
 	Components/Audio/AudioListenerComponent.cpp
+	Components/Audio/AudioZoneComponent.hpp
+	Components/Audio/AudioZoneComponent.cpp
 
 	Components/Particles/ParticleSystemComponent.hpp
 	Components/Particles/ParticleSystemComponent.cpp

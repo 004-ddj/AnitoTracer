@@ -34,7 +34,6 @@ public:
     void StartClip(uint64_t soundID);
     void StopClip(uint64_t soundID);
 
-    void CallSwitchMusic(AudioClip* newClip, uint64_t fadeLength = 2000);
     void PushMusic(uint64_t ownerID, AudioClip* ownerClip, uint64_t fadeLength);
     void PopMusic(uint64_t ownerID, uint64_t fadeLength);
 
@@ -71,9 +70,11 @@ public:
 
     static bool GetDefaultSpatialization(AudioGroupType groupType);
 
-    // Set audio listener position and direction
+    // Set/Get audio listener position and direction
     void SetListenerPosition(glm::vec3 position);
     void SetListenerDirection(glm::vec3 direction);
+
+    glm::vec3 GetListenerPosition() const { return m_ListenerPosition; }
 
     // Clears the cache
     void ClearCache();
@@ -173,6 +174,8 @@ private:
 
     ma_sound_group* GetGroup(AudioGroupType groupType);
     ma_uint32 GetSoundFlag(AudioGroupType groupType);
+
+    glm::vec3 m_ListenerPosition = glm::vec3(0.0f, 0.0f, 0.0f);
 
     // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }

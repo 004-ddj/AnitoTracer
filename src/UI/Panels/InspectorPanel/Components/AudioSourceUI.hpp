@@ -24,9 +24,6 @@ public:
             audioComponent->Stop();
 
         // test
-        if (ImGui::Button("Switch Music"))
-            AudioManager::GetInstance().CallSwitchMusic(clipReference.Get());
-
         uint64_t ownerID = static_cast<uint64_t>(std::hash<gbe::GUID>{}(audioComponent->GetGUID()));
         uint64_t fadeLength = 2000;
 

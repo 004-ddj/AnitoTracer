@@ -213,11 +213,6 @@ void AudioManager::SwitchMusic(AudioClip* newClip, uint64_t fadeLength) {
     m_CurrentSoundID = id;
 }
 
-// temporary function for testing
-void AudioManager::CallSwitchMusic(AudioClip* newClip, uint64_t fadeLength) {
-    SwitchMusic(newClip, fadeLength);
-}
-
 void AudioManager::PushMusic(uint64_t ownerID, AudioClip* ownerClip, uint64_t fadeLength) {
     auto it = std::find_if(m_MusicStack.begin(), m_MusicStack.end(), [ownerID](const MusicEntry& m) {
         return m.ownerID == ownerID;
@@ -336,6 +331,8 @@ void AudioManager::SetSoundDistance(uint64_t soundID, float minDistance, float m
 
 void AudioManager::SetListenerPosition(glm::vec3 position) {
     if (!EngineReady("Set listener position")) return;
+
+    m_ListenerPosition = position;
 
     // Set engine position
     glm::vec3 p = ConvertHandedness(position);
