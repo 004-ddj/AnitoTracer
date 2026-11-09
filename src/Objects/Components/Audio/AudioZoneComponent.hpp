@@ -2,6 +2,7 @@
 
 #include "Components/ComponentBase.hpp"
 #include "Types/UpdateTrigger.hpp"
+#include "DebugLine.hpp"
 #include "HierarchyObject.hpp"
 #include "AudioClip.hpp"
 #include "AudioManager.hpp"
@@ -28,6 +29,7 @@ public:
     AudioZoneComponent& operator=(AudioZoneComponent&&) = default;
 
     void OnUpdate(float deltaTime) override;
+    void AppendDebugLines(std::vector<DebugLineVertex>& out) const;
 
 private:
     // Audio file to play inside zone
@@ -52,6 +54,10 @@ private:
 
     uint64_t MakeOwnerKey() const { return static_cast<uint64_t>(std::hash<gbe::GUID>{}(GetGUID())); }
     uint64_t GetFadeLength() const { return static_cast<uint64_t>(std::clamp(m_fadeLength, 0, 10000)); }
+
+    // Wireframe sphere for zone visibility
+    static void AddCircle(std::vector<DebugLineVertex>& out, const glm::vec3& center, float radius, int axisA, int axisB, const glm::vec4& color);
+    static void AddSphere(std::vector<DebugLineVertex>& out, const glm::vec3& center, float radius, const glm::vec4& color);
 
     GBE_GENERATE_SERIALIZER_CONSTRUCTOR(AudioZoneComponent, ComponentBase);
 };

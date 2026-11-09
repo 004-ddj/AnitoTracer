@@ -22,6 +22,8 @@
 #include "Components/Lights/DirectionLight.hpp"
 #include "Components/Lights/PointLight.hpp"
 
+#include "Components/Audio/AudioZoneComponent.hpp"
+
 #include ANITO_SERIALIZATION_INCLUDES
 #include ANITO_EVENT_INCLUDES
 
@@ -109,6 +111,8 @@ public:
     void GatherLightData(Diligent::LightConstants& outLights) const;
 
     bool GetMainCameraPosition(glm::vec3& outPosition) const;
+
+    void GatherAudioZoneDebugLines(std::vector<DebugLineVertex>& outAudioZone) const;
 
     // ========================================================================
     // Event Dispatching Methods
