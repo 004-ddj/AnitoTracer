@@ -392,6 +392,15 @@ namespace Diligent {
                         projectSettings.audio.sfx_volume);
                 }
                 if (ImGui::IsItemDeactivatedAfterEdit()) saveProjectSettings();
+
+                if (ImGui::Checkbox("Show Audio Zone Wireframes", &projectSettings.audio.show_audio_zone_wireframes)) 
+                {
+                    saveProjectSettings();
+                }
+                if (ImGui::IsItemHovered())
+                {
+                    ImGui::SetTooltip("Draws sphere wireframes for the audio zone in the editor viewport. Inner sphere = music start; Outer sphere = music stop");
+                }
             }
 
             if (ImGui::CollapsingHeader("Debug Settings", ImGuiTreeNodeFlags_DefaultOpen))

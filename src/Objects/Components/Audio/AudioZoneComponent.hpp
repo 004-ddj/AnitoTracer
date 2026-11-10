@@ -40,15 +40,15 @@ private:
 
     // Distance from zone center to activate the audio
     float m_enterRadius = 1.0f;
-    GBE_SERIALIZE_FIELD_W_NAME(m_enterRadius, "Enter Radius");
+    GBE_SERIALIZE_FIELD_W_NAME_CB(m_enterRadius, "Enter Radius", [this](float) { m_enterRadius = std::clamp(m_enterRadius, 0.0f, 1000.0f); });
 
     // Distance beyond the enter radius that deactivates the audio
     float m_exitMargin = 1.0f;
-    GBE_SERIALIZE_FIELD_W_NAME(m_exitMargin, "Exit Margin");
+    GBE_SERIALIZE_FIELD_W_NAME_CB(m_exitMargin, "Exit Margin", [this](float) { m_exitMargin = std::clamp(m_exitMargin, 0.0f, 500.0f); });
 
     // Determines how long the audio increases/decreases its volume for transition
     int m_fadeLength = 2000;
-    GBE_SERIALIZE_FIELD_W_NAME(m_fadeLength, "Fade Length (ms)");
+    GBE_SERIALIZE_FIELD_W_NAME_CB(m_fadeLength, "Fade Length (ms)", [this](int) { m_fadeLength = std::clamp(m_fadeLength, 0, 10000); });
 
     bool m_isInsideZone = false;
 

@@ -483,8 +483,10 @@ void AnitoTracer_App::Render()
             editorRenderData.DebugLines = PhysicsEngine::GetInstance().Get().GetDebugLines();
         }
 
-        HierarchyManager::GetInstance().GatherAudioZoneDebugLines(editorRenderData.DebugLines);
-
+        if (ProjectLoader::GetProjectSettings().audio.show_audio_zone_wireframes) {
+            HierarchyManager::GetInstance().GatherAudioZoneDebugLines(editorRenderData.DebugLines);
+        }
+        
         RendererManager::GetInstance().RenderToTarget(m_pEditorTarget, editorRenderData);
 
         // Clear the main window backbuffer so ImGui has a clean background
