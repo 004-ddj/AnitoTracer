@@ -280,6 +280,14 @@ void AudioManager::ApplyVolumes(float masterVolume, float bgmVolume, float sfxVo
     SetAudioGroupVolume(AudioGroupType::SFX, sfxVolume);
 }
 
+// in progress
+void AudioManager::SetSfxReverbWet(float target, uint64_t rampMs) {
+    if (!m_SfxReverbInitialized) return;
+
+    m_SfxReverbWetTarget = std::clamp(target, 0.0f, 1.0f);
+    m_SfxReverbWetRamp = rampMs;
+}
+
 void AudioManager::SetSoundPosition(uint64_t soundID, glm::vec3 position) {
     ma_sound* sound = FindSound(soundID, "Set sound position");
     if (!sound) return;

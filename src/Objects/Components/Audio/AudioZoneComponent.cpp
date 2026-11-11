@@ -18,11 +18,11 @@ void AudioZoneComponent::OnUpdate(float deltaTime) {
 
     float distance = glm::distance(audioZonePos, audioListenPos);
 
-    // Log zone position and listener distance
-    static int frameCounter = 0;
+    // (DEBUG) Log zone position and listener distance
+    /* static int frameCounter = 0;
     if (++frameCounter % 120 == 1) 
         std::cout << "[AudioZone] update pos=(" << audioZonePos.x << "," << audioZonePos.y << ","
-            << audioZonePos.z << ") distance=(" << distance << ")" << std::endl;
+            << audioZonePos.z << ") distance=(" << distance << ")" << std::endl; */
 
     // Get fade duration and zone radius settings
     const uint64_t fadeLength = GetFadeLength();

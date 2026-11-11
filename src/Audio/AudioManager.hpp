@@ -4,6 +4,7 @@
 #include "AudioClip.hpp"
 #include "AssetLoading/AssetLoader.hpp"
 #include "miniaudio.h"
+#include "ma_reverb_node.h"
 
 #include <glm/glm.hpp>
 #include <algorithm>
@@ -51,6 +52,8 @@ public:
     void SetAudioGroupVolume(AudioGroupType groupType, float volume);
     void ApplyVolumes(float masterVolume, float bgmVolume, float sfxVolume);
 
+    void SetSfxReverbWet(float target, uint64_t rampMs);
+
     // Set audio source position
     void SetSoundPosition(uint64_t soundID, glm::vec3 position);
 
@@ -81,7 +84,9 @@ public:
 
 private:
     AudioManager() {
-        ma_result engineResult = ma_engine_init(nullptr, &m_AudioEngine);
+        ma_engine_config engineConfig = ma_engine_config_init();
+        engineConfig.channels = 2;
+        ma_result engineResult = ma_engine_init(&engineConfig, &m_AudioEngine);
 
         if (engineResult != MA_SUCCESS) {
             std::cerr << "Failed to initialize audio engine." << std::endl;
@@ -107,11 +112,48 @@ private:
                 } else {
                     m_SfxGroupInitialized = true;
                 }
+
+                ma_uint32 channels = ma_engine_get_channels(&m_AudioEngine);
+                ma_uint32 sampleRate = ma_engine_get_sample_rate(&m_AudioEngine);
+                ma_node_graph* pNodeGraph = ma_engine_get_node_graph(&m_AudioEngine);
+                ma_reverb_node_config reverbConfig = ma_reverb_node_config_init(channels, sampleRate);
+                ma_result reverbResult = ma_reverb_node_init(pNodeGraph, &reverbConfig, nullptr, &m_SfxReverb);
+
+                if (reverbResult != MA_SUCCESS) {
+                    std::cerr << "Failed to initialize SFX reverb." << std::endl;
+                } else {
+                    m_SfxReverbInitialized = true;
+
+                    verblib_set_dry(&m_SfxReverb.reverb, 0.5f);
+                    verblib_set_wet(&m_SfxReverb.reverb, 0.0f);
+                    verblib_set_room_size(&m_SfxReverb.reverb, 0.9f);
+                    verblib_set_damping(&m_SfxReverb.reverb, 0.2f);
+                    verblib_set_width(&m_SfxReverb.reverb, 1.0f);
+
+                    if (m_SfxGroupInitialized) {
+                        ma_result reverbToMaster = ma_node_attach_output_bus(&m_SfxReverb, 0, &m_MasterGroup, 0);
+                        if (reverbToMaster != MA_SUCCESS) {
+                            std::cerr << "Failed to attach reverb to Master." << std::endl;
+                        } else {
+                            ma_result sfxToReverb = ma_node_attach_output_bus(&m_SfxGroup, 0, &m_SfxReverb, 0);
+                            if (sfxToReverb != MA_SUCCESS) {
+                                std::cerr << "Failed to attach SFX to reverb." << std::endl;
+                            }
+                        }
+                    } else {
+                        std::cerr << "SFX group not initialized; reverb wiring skipped." << std::endl;
+                    }
+                }
             }
         }
     }
     ~AudioManager() { 
         ClearCache(); 
+
+        if (m_SfxReverbInitialized) {
+            ma_reverb_node_uninit(&m_SfxReverb, nullptr);
+            m_SfxReverbInitialized = false;
+        }
 
         if (m_BgmGroupInitialized) {
             ma_sound_group_uninit(&m_BgmGroup);
@@ -156,6 +198,14 @@ private:
     ma_sound_group m_SfxGroup;
     bool m_SfxGroupInitialized = false;
 
+    ma_reverb_node m_SfxReverb;
+    bool m_SfxReverbInitialized = false;
+
+    // Reverb Control
+    float m_SfxReverbWetTarget = 0.0f;
+    float m_SfxReverbWetCurrent = 0.0f;
+    uint64_t m_SfxReverbWetRamp = 0;
+
     uint64_t m_NextSoundID = 1;
     std::unordered_map<uint64_t, std::unique_ptr<ma_sound, AudioSoundDeleter>> m_PlayingSounds;
     std::unordered_set<uint64_t> m_DetachedSounds;
@@ -180,7 +230,7 @@ private:
     // Convert the engine's left-handed space to miniaudio's right-handed space
     static glm::vec3 ConvertHandedness (const glm::vec3& v) { return glm::vec3(v.x, v.y, -v.z); }
 
-    void SwitchMusic(AudioClip* newClip, uint64_t fadeLength = 2000);
+    void SwitchMusic(AudioClip* newClip, uint64_t fadeLength);
 
     void RemoveFadingSounds();
     void ClearClips();
